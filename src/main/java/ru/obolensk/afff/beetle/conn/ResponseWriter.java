@@ -8,7 +8,7 @@ import ru.obolensk.afff.beetle.request.HttpHeader;
 import ru.obolensk.afff.beetle.request.HttpMethod;
 import ru.obolensk.afff.beetle.request.Request;
 import ru.obolensk.afff.beetle.util.DateUtil;
-import ru.obolensk.afff.beetle.util.Writer;
+import ru.obolensk.afff.beetle.log.Writer;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -47,7 +47,7 @@ public class ResponseWriter {
     @Nonnull
     private static String charsetAttr(@Nonnull final MimeType mimeType) {
         if (mimeType.getCharset() == null) {
-            return null;
+            return "";
         }
         return "; charset=" + mimeType.getCharset().name();
     }
@@ -55,7 +55,7 @@ public class ResponseWriter {
     public static void sendOptions(Request req, List<HttpMethod> options) {
         final Writer writer = writeHeader(req, HttpCode.HTTP_200);
         final StringJoiner joiner = new StringJoiner("");
-        options.stream().forEach(option -> joiner.add(option.name()));
+        options.forEach(option -> joiner.add(option.name()));
         writer.println(HttpHeader.ALLOW.getName() + ":" + joiner.toString());
         writer.flush();
     }

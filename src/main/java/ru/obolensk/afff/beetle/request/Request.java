@@ -8,7 +8,8 @@ import lombok.Setter;
 import ru.obolensk.afff.beetle.conn.MimeType;
 import ru.obolensk.afff.beetle.log.LoggablePrintWriter;
 import ru.obolensk.afff.beetle.log.Logger;
-import ru.obolensk.afff.beetle.util.Writer;
+import ru.obolensk.afff.beetle.log.Writer;
+import ru.obolensk.afff.beetle.util.UriUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -16,7 +17,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -59,8 +59,8 @@ public class Request {
     @Nonnull @Getter
     private final Multimap<HttpHeader, String> headers = LinkedListMultimap.create();
 
-    @Nonnull @Getter
-    private boolean invalid;
+    @Getter
+    private final boolean invalid;
 
     @Nullable @Getter @Setter(PROTECTED)
     private Integer entitySize;
@@ -117,22 +117,17 @@ public class Request {
             return null;
         }
         if (method == GET || method == HEAD) {
-            final String[] params = uri.split("\\?|;");
+            final String[] params = uri.split("[?;]");
             uri = params[0];
             if (params.length > 1) {
                 parseParams(params[1]);
             }
         }
-        try {
-            return new URI(uri);
-        } catch (URISyntaxException e) {
-            return null;
-        }
+        return UriUtil.toURI(uri);
     }
 
     private void parseParams(@Nonnull final String params) {
-        // FIXME !!! support %20 encoding here
-        final String[] paramsArr = params.split("&");
+        final String[] paramsArr = UriUtil.decode(params).split("&");
         for (final String param : paramsArr) {
             final String[] parts = param.split("=");
             this.parameters.put(parts[0].trim(), parts.length > 1 ? parts[1].trim() : null);
@@ -144,7 +139,7 @@ public class Request {
     }
 
     public boolean hasEntity() {
-        return entitySize != 0;
+        return entitySize != null;
     }
 
     public void skipEnitityQuietly() {
@@ -159,7 +154,7 @@ public class Request {
 
     @Nonnull
     public Path getLocalPath() {
-        final String path = uri.getPath();
+        final String path = uri != null ? uri.getPath() : "";
         return path.isEmpty() || path.equals(ROOT.toString()) ? ROOT : Paths.get(path);
     }
 

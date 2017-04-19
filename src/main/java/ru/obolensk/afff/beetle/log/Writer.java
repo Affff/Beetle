@@ -1,4 +1,4 @@
-package ru.obolensk.afff.beetle.util;
+package ru.obolensk.afff.beetle.log;
 
 /**
  * Created by Afff on 11.04.2017.

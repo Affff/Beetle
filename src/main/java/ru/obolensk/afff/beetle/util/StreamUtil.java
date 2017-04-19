@@ -15,6 +15,9 @@ public class StreamUtil {
     private static final int BUFFER_SIZE = 8192;
 
     public static int copy(@Nonnull final InputStream source, @Nonnull final OutputStream target, final int bytesCount) throws IOException {
+        if (bytesCount <= 0) {
+            throw new IllegalArgumentException("Bytes count must be positive!");
+        }
         final byte[] buf = new byte[BUFFER_SIZE];
         int nread = 0;
         int n;

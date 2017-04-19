@@ -1,7 +1,5 @@
 package ru.obolensk.afff.beetle.log;
 
-import ru.obolensk.afff.beetle.util.Writer;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.OutputStream;

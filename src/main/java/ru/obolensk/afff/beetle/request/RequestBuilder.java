@@ -13,7 +13,7 @@ import java.io.OutputStream;
  */
 public class RequestBuilder {
 
-    private static Logger logger = new Logger(RequestBuilder.class);
+    private static final Logger logger = new Logger(RequestBuilder.class);
 
     @Nonnull
     private final Request request;
