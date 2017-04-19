@@ -1,0 +1,45 @@
+ext {
+    jdkVersion = '1.8'
+}
+
+apply plugin: 'java'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    jcenter()
+}
+
+group = 'ru.afff.beetle'
+version = '0.0.1';
+
+compileJava {
+    sourceCompatibility = jdkVersion
+    targetCompatibility = jdkVersion
+}
+
+compileTestJava {
+    sourceCompatibility = jdkVersion
+    targetCompatibility = jdkVersion
+}
+
+dependencies {
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+    compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.25'
+    compile group: 'log4j', name: 'log4j', version: '1.2.17'
+
+    compile group: 'org.projectlombok', name: 'lombok', version:'1.16.16'
+    compile group: 'com.google.guava', name: 'guava', version: '21.0'
+    compile group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.2'
+}
+
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+}
