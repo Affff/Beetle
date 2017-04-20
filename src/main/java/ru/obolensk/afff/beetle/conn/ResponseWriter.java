@@ -4,11 +4,7 @@ import com.google.common.io.Files;
 import ru.obolensk.afff.beetle.Version;
 import ru.obolensk.afff.beetle.log.Logger;
 import ru.obolensk.afff.beetle.log.Writer;
-import ru.obolensk.afff.beetle.request.HttpCode;
-import ru.obolensk.afff.beetle.request.HttpHeader;
-import ru.obolensk.afff.beetle.request.HttpMethod;
-import ru.obolensk.afff.beetle.request.Request;
-import ru.obolensk.afff.beetle.request.RequestBuilder;
+import ru.obolensk.afff.beetle.request.*;
 import ru.obolensk.afff.beetle.util.DateUtil;
 
 import javax.annotation.Nonnull;
@@ -20,11 +16,7 @@ import java.util.List;
 import java.util.StringJoiner;
 
 import static ru.obolensk.afff.beetle.conn.MimeType.TEXT_HTML;
-import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_414;
-import static ru.obolensk.afff.beetle.request.HttpHeader.CONTENT_LENGTH;
-import static ru.obolensk.afff.beetle.request.HttpHeader.CONTENT_TYPE;
-import static ru.obolensk.afff.beetle.request.HttpHeader.DATE;
-import static ru.obolensk.afff.beetle.request.HttpHeader.SERVER;
+import static ru.obolensk.afff.beetle.request.HttpHeader.*;
 
 /**
  * Created by Afff on 11.04.2017.
@@ -76,7 +68,7 @@ public class ResponseWriter {
     }
 
     public static void sendUnparseableRequestAnswer(@Nonnull final OutputStream out, @Nonnull final HttpCode code) {
-        sendEmptyAnswer(new RequestBuilder(out,"UNKNOWN / HTTP/1.1").build(), HTTP_414);
+        sendEmptyAnswer(new RequestBuilder(out,"UNKNOWN / HTTP/1.1").build(), code);
     }
 
     public static void sendFile(@Nonnull final Request req, @Nonnull final Path path) {

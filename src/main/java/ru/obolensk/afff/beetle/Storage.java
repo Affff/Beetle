@@ -4,6 +4,7 @@ import ru.obolensk.afff.beetle.conn.ClientConnection;
 import ru.obolensk.afff.beetle.log.Logger;
 import ru.obolensk.afff.beetle.request.HttpCode;
 import ru.obolensk.afff.beetle.request.Request;
+import ru.obolensk.afff.beetle.settings.Config;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -13,9 +14,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_200;
-import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_201;
-import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_500;
+import static ru.obolensk.afff.beetle.request.HttpCode.*;
+import static ru.obolensk.afff.beetle.settings.Options.WWW_ROOT_DIR;
 import static ru.obolensk.afff.beetle.util.StreamUtil.copy;
 
 /**
@@ -23,7 +23,6 @@ import static ru.obolensk.afff.beetle.util.StreamUtil.copy;
  */
 public class Storage {
 
-    //TODO add settings to specify the www root
     //TODO add virtual hosts support
     //FIXME !!!prevent top level attacks for server
 
@@ -33,15 +32,24 @@ public class Storage {
 
     private static final String WELCOME_FILE_NAME = "index.html";
 
-    private static final Path ROOT_DIR = Paths.get("D:/Beetle/www"); //FIXME remove this shit
+    private final Config config;
 
-    @Nonnull
-    public static Path getFilePath(@Nonnull final Path path) {
-        return ROOT.equals(path) ? ROOT_DIR.resolve(WELCOME_FILE_NAME) : ROOT_DIR.resolve(path.subpath(0, path.getNameCount())); //TODO add welcome files list
+    public Storage(@Nonnull final Config config) {
+        this.config = config;
     }
 
-    public static HttpCode putFile(@Nonnull final Request req) {
-        final Path file = Storage.getFilePath(req.getLocalPath());
+    private Path getRootDir() {
+        return config.get(WWW_ROOT_DIR);
+    }
+
+    @Nonnull
+    public Path getFilePath(@Nonnull final Path path) {
+        final Path rootDir = getRootDir();
+        return ROOT.equals(path) ? rootDir.resolve(WELCOME_FILE_NAME) : rootDir.resolve(path.subpath(0, path.getNameCount())); //TODO add welcome files list
+    }
+
+    public HttpCode putFile(@Nonnull final Request req) {
+        final Path file = getFilePath(req.getLocalPath());
         final boolean exists = Files.exists(file);
         HttpCode responseCode = exists ? HTTP_200 : HTTP_201;
         final int size = req.getEntitySize() != null ? req.getEntitySize() : 0;

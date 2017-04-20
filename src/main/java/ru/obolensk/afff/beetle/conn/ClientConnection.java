@@ -1,11 +1,13 @@
 package ru.obolensk.afff.beetle.conn;
 
+import ru.obolensk.afff.beetle.BeetleServer;
 import ru.obolensk.afff.beetle.Storage;
 import ru.obolensk.afff.beetle.log.Logger;
 import ru.obolensk.afff.beetle.request.HttpHeader;
 import ru.obolensk.afff.beetle.request.HttpMethod;
 import ru.obolensk.afff.beetle.request.Request;
 import ru.obolensk.afff.beetle.request.RequestBuilder;
+import ru.obolensk.afff.beetle.settings.Options;
 import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
 import ru.obolensk.afff.beetle.stream.LineTooLongException;
 
@@ -46,18 +48,18 @@ public class ClientConnection {
 
     private static final Logger logger = new Logger(ClientConnection.class);
 
-    private static final int LINE_LIMIT = 8192; // TODO move this to config
-
-    public ClientConnection(@Nonnull final Socket socket) throws IOException {
+    public ClientConnection(@Nonnull final BeetleServer server, @Nonnull final Socket socket) throws IOException {
         logger.debug("Open client connection from {}:{}", socket.getInetAddress(), socket.getPort());
-        try (final LimitedBufferedReader reader = new LimitedBufferedReader(new InputStreamReader(socket.getInputStream()), LINE_LIMIT)) {
+        final int maxLineLimit = server.getConfig().get(Options.REQUEST_MAX_LINE_LENGHT);
+        try (final LimitedBufferedReader reader
+                     = new LimitedBufferedReader(new InputStreamReader(socket.getInputStream()), maxLineLimit)) {
             String nextReq;
             while ((nextReq = reader.readLine()) != null) {
                 final RequestBuilder builder = new RequestBuilder(socket.getOutputStream(), nextReq);
                 while (builder.addHeader(reader.readLine())) ;
                 builder.appendEntityIfExists(socket.getInputStream());
                 final Request req = builder.build();
-                proceedRequest(req);
+                proceedRequest(req, server.getStorage());
                 if (closeRequested(req)) {
                     break;
                 }
@@ -69,7 +71,7 @@ public class ClientConnection {
         logger.debug("Close client connection on {}:{}", socket.getInetAddress(), socket.getPort());
     }
 
-    private void proceedRequest(@Nonnull final Request req) {
+    private void proceedRequest(@Nonnull final Request req, @Nonnull final Storage storage) {
         //TODO add access rights
         if (req.isInvalid()) {
             req.skipEntityQuietly();
@@ -93,7 +95,7 @@ public class ClientConnection {
                         return;
                     }
                     case TEXT_PLAIN :
-                        ResponseWriter.sendEmptyAnswer(req, Storage.putFile(req));
+                        ResponseWriter.sendEmptyAnswer(req, storage.putFile(req));
                         return;
                     default:  {
                         req.skipEntityQuietly();
@@ -104,17 +106,17 @@ public class ClientConnection {
             } else {
                 req.skipEntityQuietly();
             }
-            final Path file = Storage.getFilePath(req.getLocalPath());
+            final Path file = storage.getFilePath(req.getLocalPath());
             if (!Files.exists(file)) {
                 ResponseWriter.send404(req);
             } else {
                 ResponseWriter.sendFile(req, file);
             }
         } else if (req.getMethod() == PUT) {
-            ResponseWriter.sendEmptyAnswer(req, Storage.putFile(req));
+            ResponseWriter.sendEmptyAnswer(req, storage.putFile(req));
         } else if (req.getMethod() == DELETE) {
             req.skipEntityQuietly();
-            final Path file = Storage.getFilePath(req.getLocalPath());
+            final Path file = storage.getFilePath(req.getLocalPath());
             if (!Files.exists(file)) {
                 ResponseWriter.send404(req);
             } else {

@@ -1,7 +1,10 @@
 package ru.obolensk.afff.beetle;
 
+import lombok.Getter;
 import ru.obolensk.afff.beetle.conn.ClientConnection;
 import ru.obolensk.afff.beetle.log.Logger;
+import ru.obolensk.afff.beetle.settings.Config;
+import ru.obolensk.afff.beetle.settings.ServerConfig;
 
 import javax.annotation.Nonnull;
 import java.io.Closeable;
@@ -12,6 +15,9 @@ import java.net.SocketException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static ru.obolensk.afff.beetle.settings.Options.LOG_TO_CONSOLE;
+import static ru.obolensk.afff.beetle.settings.Options.SERVER_THREAD_COUNT;
+
 /**
  * Created by Afff on 10.04.2017.
  */
@@ -21,20 +27,32 @@ public class BeetleServer implements Closeable {
 
     private static final int DEFAULT_PORT = 80;
 
-    private static final int DEFAULT_THREAD_COUNT = 5; // TODO move to settings
+    @Getter
+    private final Config config;
+
+    @Getter
+    private final Storage storage;
 
     private final ServerSocket serverSocket;
     private final ExecutorService executor;
     private volatile boolean terminated;
 
     public BeetleServer() throws IOException {
-        this(DEFAULT_PORT);
+        this(DEFAULT_PORT, new ServerConfig());
     }
 
     public BeetleServer(final int port) throws IOException {
-        Logger.addConsoleAppender(); // TODO switch it by settings
+        this(port, new ServerConfig());
+    }
+
+    public BeetleServer(final int port, @Nonnull final Config config) throws IOException {
+        this.config = config;
+        this.storage = new Storage(config);
+        if (config.get(LOG_TO_CONSOLE)) {
+            Logger.addConsoleAppender();
+        }
         logger.info("Starting {} on port {}...", Version.nameAndVersion(), port);
-        this.executor = Executors.newFixedThreadPool(DEFAULT_THREAD_COUNT);
+        this.executor = Executors.newFixedThreadPool(config.get(SERVER_THREAD_COUNT));
         this.serverSocket = new ServerSocket(port);
         Runnable mainLoop = () -> {
             while (!terminated) {
@@ -71,7 +89,7 @@ public class BeetleServer implements Closeable {
     private void proceed(@Nonnull final Socket accept) {
         executor.submit(() -> {
             try {
-                new ClientConnection(accept);
+                new ClientConnection(this, accept);
             } catch (IOException e) {
                 logger.error(e);
             }
