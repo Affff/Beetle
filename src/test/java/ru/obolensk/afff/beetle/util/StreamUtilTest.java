@@ -16,6 +16,8 @@ import static org.junit.Assert.assertTrue;
  */
 public class StreamUtilTest {
 
+    //TODO choose and add HTTP testing framework
+
     @Test
     public void streamCopyTest() throws IOException {
         byte[] buffIn = new byte[20];

@@ -2,13 +2,16 @@ package ru.obolensk.afff.beetle.conn;
 
 import ru.obolensk.afff.beetle.Storage;
 import ru.obolensk.afff.beetle.log.Logger;
-import ru.obolensk.afff.beetle.request.*;
+import ru.obolensk.afff.beetle.request.HttpHeader;
+import ru.obolensk.afff.beetle.request.HttpMethod;
+import ru.obolensk.afff.beetle.request.Request;
+import ru.obolensk.afff.beetle.request.RequestBuilder;
+import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
+import ru.obolensk.afff.beetle.stream.LineTooLongException;
 
 import javax.annotation.Nonnull;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,11 +19,24 @@ import java.util.List;
 
 import static java.util.Arrays.asList;
 import static ru.obolensk.afff.beetle.conn.MimeType.MESSAGE_HTTP;
-import static ru.obolensk.afff.beetle.request.HttpCode.*;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_200;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_400;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_414;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_415;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_500;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_501;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_505;
 import static ru.obolensk.afff.beetle.request.HttpHeaderValue.CONNECTION_CLOSE;
-import static ru.obolensk.afff.beetle.request.HttpMethod.*;
+import static ru.obolensk.afff.beetle.request.HttpMethod.CONNECT;
+import static ru.obolensk.afff.beetle.request.HttpMethod.DELETE;
+import static ru.obolensk.afff.beetle.request.HttpMethod.GET;
+import static ru.obolensk.afff.beetle.request.HttpMethod.HEAD;
+import static ru.obolensk.afff.beetle.request.HttpMethod.OPTIONS;
+import static ru.obolensk.afff.beetle.request.HttpMethod.POST;
+import static ru.obolensk.afff.beetle.request.HttpMethod.PUT;
+import static ru.obolensk.afff.beetle.request.HttpMethod.TRACE;
+import static ru.obolensk.afff.beetle.request.HttpMethod.UNKNOWN;
 import static ru.obolensk.afff.beetle.request.HttpVersion.HTTP_1_1;
-import static ru.obolensk.afff.beetle.util.StreamUtil.copy;
 
 
 /**
@@ -30,14 +46,16 @@ public class ClientConnection {
 
     private static final Logger logger = new Logger(ClientConnection.class);
 
+    private static final int LINE_LIMIT = 8192; // TODO move this to config
+
     public ClientConnection(@Nonnull final Socket socket) throws IOException {
-        logger.debug("Open client conection from {}:{}", socket.getInetAddress(), socket.getPort());
-        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+        logger.debug("Open client connection from {}:{}", socket.getInetAddress(), socket.getPort());
+        try (final LimitedBufferedReader reader = new LimitedBufferedReader(new InputStreamReader(socket.getInputStream()), LINE_LIMIT)) {
             String nextReq;
-            while ((nextReq = reader.readLine()) != null) { // TODO replace BufferedReader to own BoundedBufferedReader with maximum string lenght method, if max string len exceeded throw "414 Request-URI Too Long"
+            while ((nextReq = reader.readLine()) != null) {
                 final RequestBuilder builder = new RequestBuilder(socket.getOutputStream(), nextReq);
                 while (builder.addHeader(reader.readLine())) ;
-                builder.appendEnitityIfExists(socket.getInputStream());
+                builder.appendEntityIfExists(socket.getInputStream());
                 final Request req = builder.build();
                 proceedRequest(req);
                 if (closeRequested(req)) {
@@ -45,6 +63,8 @@ public class ClientConnection {
                 }
             }
             socket.close();
+        } catch (final LineTooLongException e) {
+            ResponseWriter.sendUnparseableRequestAnswer(socket.getOutputStream(), HTTP_414);
         }
         logger.debug("Close client connection on {}:{}", socket.getInetAddress(), socket.getPort());
     }
@@ -52,10 +72,10 @@ public class ClientConnection {
     private void proceedRequest(@Nonnull final Request req) {
         //TODO add access rights
         if (req.isInvalid()) {
-            req.skipEnitityQuietly();
+            req.skipEntityQuietly();
             ResponseWriter.sendEmptyAnswer(req, HTTP_400);
         } else if (req.getVersion() != HTTP_1_1) { //TODO support other versions
-            req.skipEnitityQuietly();
+            req.skipEntityQuietly();
             ResponseWriter.sendEmptyAnswer(req, HTTP_505);
         } else if (req.getMethod() == GET
                 || req.getMethod() == HEAD
@@ -63,24 +83,26 @@ public class ClientConnection {
             if (req.getMethod() == POST) {
                 switch(req.getContentType()) {
                     case APPLICATION_X_WWW_FORM_URLENCODED: { // TODO support www form data
-                        req.skipEnitityQuietly();
+                        req.skipEntityQuietly();
                         ResponseWriter.sendEmptyAnswer(req, HTTP_415);
                         return;
                     }
                     case MULTIPART_FORM_DATA : { // TODO support multipart form data
-                        req.skipEnitityQuietly();
+                        req.skipEntityQuietly();
                         ResponseWriter.sendEmptyAnswer(req, HTTP_415);
                         return;
                     }
                     case TEXT_PLAIN :
+                        ResponseWriter.sendEmptyAnswer(req, Storage.putFile(req));
+                        return;
                     default:  {
-                        req.skipEnitityQuietly();
+                        req.skipEntityQuietly();
                         ResponseWriter.sendEmptyAnswer(req, HTTP_415);
                         return;
                     }
                 }
             } else {
-                req.skipEnitityQuietly();
+                req.skipEntityQuietly();
             }
             final Path file = Storage.getFilePath(req.getLocalPath());
             if (!Files.exists(file)) {
@@ -89,24 +111,9 @@ public class ClientConnection {
                 ResponseWriter.sendFile(req, file);
             }
         } else if (req.getMethod() == PUT) {
-            final Path file = Storage.getFilePath(req.getLocalPath());
-            final boolean exists = Files.exists(file);
-            HttpCode responseCode = exists ? HTTP_200 : HTTP_201;
-            final int size = req.getEntitySize() != null ? req.getEntitySize() : 0;
-            if (size > 0) {
-                try {
-                    if (!exists) {
-                        Files.createDirectories(file.getParent());
-                    }
-                    final OutputStream outputStream = Files.newOutputStream(file);
-                    copy(req.getEntityStream(), outputStream, size);
-                } catch (IOException e) {
-                    responseCode = HTTP_500;
-                }
-            }
-            ResponseWriter.sendEmptyAnswer(req, responseCode);
+            ResponseWriter.sendEmptyAnswer(req, Storage.putFile(req));
         } else if (req.getMethod() == DELETE) {
-            req.skipEnitityQuietly();
+            req.skipEntityQuietly();
             final Path file = Storage.getFilePath(req.getLocalPath());
             if (!Files.exists(file)) {
                 ResponseWriter.send404(req);
@@ -120,20 +127,20 @@ public class ClientConnection {
             }
         } else if (req.getMethod() == OPTIONS) {
             //TODO support options for nested resources
-            req.skipEnitityQuietly();
+            req.skipEntityQuietly();
             final List<HttpMethod> supportedMethods = asList(HEAD, GET, POST, PUT, DELETE, OPTIONS, TRACE);
             ResponseWriter.sendOptions(req, supportedMethods);
         } else if (req.getMethod() == TRACE) {
-            req.skipEnitityQuietly();
+            req.skipEntityQuietly();
             ResponseWriter.sendAnswer(req, HTTP_200, MESSAGE_HTTP, req.getRawData());
         } else if (req.getMethod() == CONNECT) {
-            req.skipEnitityQuietly();
+            req.skipEntityQuietly();
             ResponseWriter.sendConnected(req);
         } else if (req.getMethod() == UNKNOWN) {
-            req.skipEnitityQuietly();
+            req.skipEntityQuietly();
             ResponseWriter.sendEmptyAnswer(req, HTTP_505);
         } else {
-            req.skipEnitityQuietly();
+            req.skipEntityQuietly();
             ResponseWriter.sendEmptyAnswer(req, HTTP_501);
         }
     }

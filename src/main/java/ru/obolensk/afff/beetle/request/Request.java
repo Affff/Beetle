@@ -142,7 +142,7 @@ public class Request {
         return entitySize != null;
     }
 
-    public void skipEnitityQuietly() {
+    public void skipEntityQuietly() {
         if (entitySize != null) {
             try {
                 entityStream.skip(entitySize);

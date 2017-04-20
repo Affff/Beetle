@@ -43,7 +43,7 @@ public class RequestBuilder {
         return false;
     }
 
-    public void appendEnitityIfExists(@Nonnull final InputStream inputStream) {
+    public void appendEntityIfExists(@Nonnull final InputStream inputStream) {
         final Integer entitySize = entitySize();
         if (entitySize != null) {
             request.setEntitySize(entitySize);

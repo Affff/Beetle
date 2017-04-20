@@ -3,21 +3,24 @@ package ru.obolensk.afff.beetle.conn;
 import com.google.common.io.Files;
 import ru.obolensk.afff.beetle.Version;
 import ru.obolensk.afff.beetle.log.Logger;
+import ru.obolensk.afff.beetle.log.Writer;
 import ru.obolensk.afff.beetle.request.HttpCode;
 import ru.obolensk.afff.beetle.request.HttpHeader;
 import ru.obolensk.afff.beetle.request.HttpMethod;
 import ru.obolensk.afff.beetle.request.Request;
+import ru.obolensk.afff.beetle.request.RequestBuilder;
 import ru.obolensk.afff.beetle.util.DateUtil;
-import ru.obolensk.afff.beetle.log.Writer;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.StringJoiner;
 
 import static ru.obolensk.afff.beetle.conn.MimeType.TEXT_HTML;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_414;
 import static ru.obolensk.afff.beetle.request.HttpHeader.CONTENT_LENGTH;
 import static ru.obolensk.afff.beetle.request.HttpHeader.CONTENT_TYPE;
 import static ru.obolensk.afff.beetle.request.HttpHeader.DATE;
@@ -70,6 +73,10 @@ public class ResponseWriter {
 
     public static void sendEmptyAnswer(@Nonnull final Request req, @Nonnull final HttpCode code) {
         sendAnswer(req, code, TEXT_HTML, "");
+    }
+
+    public static void sendUnparseableRequestAnswer(@Nonnull final OutputStream out, @Nonnull final HttpCode code) {
+        sendEmptyAnswer(new RequestBuilder(out,"UNKNOWN / HTTP/1.1").build(), HTTP_414);
     }
 
     public static void sendFile(@Nonnull final Request req, @Nonnull final Path path) {
