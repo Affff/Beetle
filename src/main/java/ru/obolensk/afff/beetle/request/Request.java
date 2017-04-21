@@ -126,7 +126,7 @@ public class Request {
         return UriUtil.toURI(uri);
     }
 
-    private void parseParams(@Nonnull final String params) {
+    public void parseParams(@Nonnull final String params) {
         final String[] paramsArr = UriUtil.decode(params).split("&");
         for (final String param : paramsArr) {
             final String[] parts = param.split("=");
