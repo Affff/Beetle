@@ -2,6 +2,7 @@ package ru.obolensk.afff.beetle.conn;
 
 import lombok.Getter;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -33,13 +34,16 @@ public enum MimeType {
         this.charset = charset;
     }
 
-    @Nullable
+    @Nonnull
     public static MimeType getByName(@Nullable final String name) {
+        if (name == null) {
+            return UNKNOWN;
+        }
         for (MimeType type : values()) {
             if (type.getName().equals(name)) {
                 return type;
             }
         }
-        return null;
+        return UNKNOWN;
     }
 }

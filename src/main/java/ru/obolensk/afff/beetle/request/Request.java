@@ -17,8 +17,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +25,7 @@ import static lombok.AccessLevel.PROTECTED;
 import static ru.obolensk.afff.beetle.Storage.ROOT;
 import static ru.obolensk.afff.beetle.request.HttpMethod.GET;
 import static ru.obolensk.afff.beetle.request.HttpMethod.HEAD;
+import static ru.obolensk.afff.beetle.util.UriUtil.decode;
 
 /**
  * Created by Afff on 10.04.2017.
@@ -67,7 +66,6 @@ public class Request {
 
     @Nullable @Getter @Setter(PROTECTED)
     private InputStream entityStream;
-    private int contentType;
 
     private Request(@Nonnull final OutputStream outputStream, @Nonnull final String method, @Nonnull final String uri, @Nonnull final String version) {
         this(outputStream, HttpMethod.decode(method), uri, HttpVersion.decode(version));
@@ -127,10 +125,10 @@ public class Request {
     }
 
     public void parseParams(@Nonnull final String params) {
-        final String[] paramsArr = UriUtil.decode(params).split("&");
+        final String[] paramsArr = params.split("&");
         for (final String param : paramsArr) {
             final String[] parts = param.split("=");
-            this.parameters.put(parts[0].trim(), parts.length > 1 ? parts[1].trim() : null);
+            this.parameters.put(parts[0].trim(), parts.length > 1 ? decode(parts[1]).trim() : null);
         }
     }
 
@@ -153,11 +151,12 @@ public class Request {
     }
 
     @Nonnull
-    public Path getLocalPath() {
+    public String getLocalPath() {
         final String path = uri != null ? uri.getPath() : "";
-        return path.isEmpty() || path.equals(ROOT.toString()) ? ROOT : Paths.get(path);
+        return path.isEmpty() ? ROOT.toString() : path;
     }
 
+    @Nonnull
     public MimeType getContentType() {
         return MimeType.getByName(getHeaderValue(HttpHeader.CONTENT_TYPE));
     }

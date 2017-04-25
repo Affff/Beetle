@@ -33,7 +33,7 @@ public class ResponseWriter {
         }
         writer.println(CONTENT_LENGTH.getName() + ": " + length);
         writer.println();
-        if (req.shouldWriteBody()) {
+        if (length != 0 && req.shouldWriteBody()) { // HEAD method mustn't have body
             writer.println(content);
         }
         writer.flush();

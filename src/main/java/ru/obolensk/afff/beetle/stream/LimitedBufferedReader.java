@@ -1,7 +1,5 @@
 package ru.obolensk.afff.beetle.stream;
 
-import lombok.Getter;
-
 import javax.annotation.Nonnull;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,20 +12,18 @@ public class LimitedBufferedReader extends BufferedReader {
 
     private final int maxLineLenght;
 
-    @Getter
-    private boolean overflow;
+    private boolean lineOverflow;
 
     public LimitedBufferedReader(@Nonnull final Reader reader, final int maxLineLenght) {
         super(reader);
+        if (maxLineLenght <= 0) {
+            throw new IllegalArgumentException("maxLineLenght must be positive!");
+        }
         this.maxLineLenght = maxLineLenght;
     }
 
-    /**
-     * Method read line of text from underlined stream.
-     * @throws LineTooLongException if line exceeded maxLineLenght value this exception will be thrown
-     */
     @Override
-    public String readLine() throws LineTooLongException, IOException {
+    public String readLine() throws IOException {
         final char[] data = new char[maxLineLenght];
         final int CR = 13;
         final int LF = 10;
@@ -40,7 +36,8 @@ public class LimitedBufferedReader extends BufferedReader {
             if (currentPos < maxLineLenght) {
                 currentCharVal = super.read();
             } else {
-                throw new LineTooLongException();
+                lineOverflow = true;
+                return new String(data, 0, currentPos);
             }
         }
 
@@ -59,8 +56,19 @@ public class LimitedBufferedReader extends BufferedReader {
                     super.reset();
                 }
             }
-            return(new String(data, 0, currentPos));
+            return new String(data, 0, currentPos);
         }
+    }
 
+    /**
+     * Returns true if last line was too long and false otherwise.
+     * WARNING! Overflow status is raised by call this method.
+     */
+    public boolean isLineOverflow() {
+        boolean overflow = lineOverflow;
+        if (overflow) {
+            lineOverflow = false;
+        }
+        return overflow;
     }
 }

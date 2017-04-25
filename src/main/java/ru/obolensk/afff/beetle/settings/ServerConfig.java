@@ -2,15 +2,15 @@ package ru.obolensk.afff.beetle.settings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by Afff on 20.04.2017.
  */
 public class ServerConfig implements Config {
 
-    private final Map<Options, Object> settings = new HashMap<>();
+    private final Map<Options, Object> settings = new ConcurrentHashMap<>();
 
     public ServerConfig() {
         for (Options option : Options.values()) {

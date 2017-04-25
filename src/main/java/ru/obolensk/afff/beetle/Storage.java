@@ -27,7 +27,9 @@ public class Storage {
 
     private static final Logger logger = new Logger(ClientConnection.class);
 
-    public static final Path ROOT = Paths.get("/");
+    private static final String URI_SEPARATOR = "/";
+
+    public static final Path ROOT = Paths.get(URI_SEPARATOR);
 
     private final Config config;
 
@@ -46,10 +48,12 @@ public class Storage {
     }
 
     @Nullable
-    public Path getFilePath(@Nonnull final Path path) {
+    public Path getFilePath(@Nonnull String path) {
+        path = path.substring(1); // delete starting '/'
         final Path rootDir = getRootDir();
-        final Path targetPath = ROOT.equals(path) ? rootDir.resolve(getWelcomeFileName()) : rootDir.resolve(path.subpath(0, path.getNameCount()));
-        if (!targetPath.startsWith(rootDir)) { // check prevents out-of-root-dir attacks
+        final Path targetPath = path.isEmpty() ? rootDir.resolve(getWelcomeFileName())
+                : path.endsWith(URI_SEPARATOR) ? rootDir.resolve(path).resolve(getWelcomeFileName()) : rootDir.resolve(path);
+        if (!targetPath.normalize().startsWith(rootDir)) { // check prevents out-of-root-dir attacks
             return null;
         }
         return targetPath;

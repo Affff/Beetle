@@ -12,7 +12,7 @@ import java.nio.file.Paths;
 public enum Options {
 
     LOG_TO_CONSOLE(true),
-    WWW_ROOT_DIR(Paths.get("D:/Beetle/www")),
+    WWW_ROOT_DIR(Paths.get("c:/www")),
     WELCOME_FILE_NAME("index.html"),
     SERVER_THREAD_COUNT(5),
     REQUEST_MAX_LINE_LENGHT(8192)

@@ -7,9 +7,7 @@ import ru.obolensk.afff.beetle.request.HttpHeader;
 import ru.obolensk.afff.beetle.request.HttpMethod;
 import ru.obolensk.afff.beetle.request.Request;
 import ru.obolensk.afff.beetle.request.RequestBuilder;
-import ru.obolensk.afff.beetle.settings.Options;
 import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
-import ru.obolensk.afff.beetle.stream.LineTooLongException;
 
 import javax.annotation.Nonnull;
 import java.io.BufferedReader;
@@ -22,10 +20,25 @@ import java.util.List;
 
 import static java.util.Arrays.asList;
 import static ru.obolensk.afff.beetle.conn.MimeType.MESSAGE_HTTP;
-import static ru.obolensk.afff.beetle.request.HttpCode.*;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_200;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_400;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_414;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_415;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_500;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_501;
+import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_505;
 import static ru.obolensk.afff.beetle.request.HttpHeaderValue.CONNECTION_CLOSE;
-import static ru.obolensk.afff.beetle.request.HttpMethod.*;
+import static ru.obolensk.afff.beetle.request.HttpMethod.CONNECT;
+import static ru.obolensk.afff.beetle.request.HttpMethod.DELETE;
+import static ru.obolensk.afff.beetle.request.HttpMethod.GET;
+import static ru.obolensk.afff.beetle.request.HttpMethod.HEAD;
+import static ru.obolensk.afff.beetle.request.HttpMethod.OPTIONS;
+import static ru.obolensk.afff.beetle.request.HttpMethod.POST;
+import static ru.obolensk.afff.beetle.request.HttpMethod.PUT;
+import static ru.obolensk.afff.beetle.request.HttpMethod.TRACE;
+import static ru.obolensk.afff.beetle.request.HttpMethod.UNKNOWN;
 import static ru.obolensk.afff.beetle.request.HttpVersion.HTTP_1_1;
+import static ru.obolensk.afff.beetle.settings.Options.REQUEST_MAX_LINE_LENGHT;
 import static ru.obolensk.afff.beetle.util.FileUtils.exists;
 
 
@@ -41,11 +54,15 @@ public class ClientConnection {
 
     public ClientConnection(@Nonnull final BeetleServer server, @Nonnull final Socket socket) throws IOException {
         logger.debug("Open client connection from {}:{}", socket.getInetAddress(), socket.getPort());
-        final int maxLineLimit = server.getConfig().get(Options.REQUEST_MAX_LINE_LENGHT);
+        final int maxLineLimit = server.getConfig().get(REQUEST_MAX_LINE_LENGHT);
         try (final LimitedBufferedReader reader
                      = new LimitedBufferedReader(new InputStreamReader(socket.getInputStream()), maxLineLimit)) {
             String nextReq;
             while ((nextReq = reader.readLine()) != null) {
+                if (reader.isLineOverflow()) {
+                    ResponseWriter.sendUnparseableRequestAnswer(socket.getOutputStream(), HTTP_414);
+                    continue;
+                }
                 final RequestBuilder builder = new RequestBuilder(socket.getOutputStream(), nextReq);
                 while (builder.addHeader(reader.readLine())) ;
                 builder.appendEntityIfExists(socket.getInputStream());
@@ -55,10 +72,8 @@ public class ClientConnection {
                     break;
                 }
             }
-            socket.close();
-        } catch (final LineTooLongException e) {
-            ResponseWriter.sendUnparseableRequestAnswer(socket.getOutputStream(), HTTP_414);
         }
+        socket.close();
         logger.debug("Close client connection on {}:{}", socket.getInetAddress(), socket.getPort());
     }
 
@@ -78,19 +93,16 @@ public class ClientConnection {
             if (req.getMethod() == POST) {
                 switch(req.getContentType()) {
                     case APPLICATION_X_WWW_FORM_URLENCODED: {
-                        final String params = reader.readLine();
-                        req.parseParams(params);
-                        ResponseWriter.sendEmptyAnswer(req, HTTP_415);
-                        return;
+                        if (req.hasEntity()) {
+                            req.parseParams(reader.readLine());
+                        }
+                        break;
                     }
                     case MULTIPART_FORM_DATA : { // TODO support multipart form data
                         req.skipEntityQuietly();
                         ResponseWriter.sendEmptyAnswer(req, HTTP_415);
                         return;
                     }
-                    case TEXT_PLAIN :
-                        ResponseWriter.sendEmptyAnswer(req, storage.putFile(req));
-                        return;
                     default:  {
                         req.skipEntityQuietly();
                         ResponseWriter.sendEmptyAnswer(req, HTTP_415);
