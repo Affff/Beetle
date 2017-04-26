@@ -7,18 +7,10 @@ import ru.obolensk.afff.beetle.request.HttpVersion;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.net.Socket;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static ru.obolensk.afff.beetle.request.HttpHeader.CONNECTION;
-import static ru.obolensk.afff.beetle.request.HttpHeader.CONTENT_LENGTH;
-import static ru.obolensk.afff.beetle.request.HttpHeader.CONTENT_TYPE;
+import static ru.obolensk.afff.beetle.request.HttpHeader.*;
 import static ru.obolensk.afff.beetle.request.HttpHeaderValue.CONNECTION_KEEP_ALIVE;
 import static ru.obolensk.afff.beetle.request.HttpMethod.HEAD;
 import static ru.obolensk.afff.beetle.request.HttpVersion.HTTP_1_1;
@@ -48,27 +40,30 @@ public class HttpTestClient implements Closeable {
                                     @Nonnull final String path,
                                     @Nullable final String content,
                                     @Nullable final MimeType contentType) throws IOException {
+        System.out.println("[TEST] wrote request " + method.name() + " " + path + " " + version.getName());
         writer.write(method.name() + " " + path + " " + version.getName());
         writer.newLine();
         if (contentType != null) {
             writer.write(CONTENT_TYPE.getName() + ": " + contentType.getName());
             writer.newLine();
         }
-        byte[] contentBytes = null;
+        char[] contentBytes = null;
         if (content != null) {
-            contentBytes = content.getBytes(UTF_8);
+            contentBytes = content.toCharArray();
             writer.write(CONTENT_LENGTH.getName() + ": " + contentBytes.length);
             writer.newLine();
         }
         writer.write(CONNECTION.getName() + ": " + CONNECTION_KEEP_ALIVE.getName());
         writer.newLine();
         writer.newLine();
-        writer.flush();
         if (contentBytes != null) {
-            socket.getOutputStream().write(contentBytes);
-            socket.getOutputStream().flush();
+            System.out.println("[TEST] write " + contentBytes.length + " bytes of content.");
+            writer.write(contentBytes);
+            System.out.println("[TEST] content was written.");
         }
+        writer.flush();
         final String response = reader.readLine();
+        System.out.println("[TEST] read response: " + response);
         final HttpCode statusCode = HttpCode.valueOf("HTTP_" + response.substring("HTTP/1.1 ".length(), "HTTP/1.1 ".length() + 3));
         int contentSize = 0;
         String line;
@@ -82,6 +77,7 @@ public class HttpTestClient implements Closeable {
             final char[] buf = new char[contentSize];
             assert reader.read(buf, 0, contentSize) == contentSize;
             receivedContent = new String(buf);
+            System.out.println("[TEST] read content: " + receivedContent);
         }
         return new ServerAnswer(statusCode, receivedContent);
     }

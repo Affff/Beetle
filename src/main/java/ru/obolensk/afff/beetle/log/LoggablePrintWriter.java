@@ -25,6 +25,12 @@ public class LoggablePrintWriter implements Writer {
     }
 
     @Override
+    public void write(@Nullable final String string) {
+        logger.trace("OUT<<<{}", string);
+        pw.print(string);
+    }
+
+    @Override
     public void println() {
         pw.println();
     }

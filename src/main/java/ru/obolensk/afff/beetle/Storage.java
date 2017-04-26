@@ -85,7 +85,7 @@ public class Storage {
                 logger.error(e);
                 responseCode = HTTP_500;
             } finally {
-                if (tempFile != null) {
+                if (tempFile != null && Files.exists(tempFile)) {
                     try {
                         Files.delete(tempFile);
                     } catch (IOException e) {

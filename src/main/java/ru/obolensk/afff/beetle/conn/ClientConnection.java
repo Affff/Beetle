@@ -20,23 +20,10 @@ import java.util.List;
 
 import static java.util.Arrays.asList;
 import static ru.obolensk.afff.beetle.conn.MimeType.MESSAGE_HTTP;
-import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_200;
-import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_400;
-import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_414;
-import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_415;
-import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_500;
-import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_501;
-import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_505;
+import static ru.obolensk.afff.beetle.conn.ResponseWriter.sendUnparseableRequestAnswer;
+import static ru.obolensk.afff.beetle.request.HttpCode.*;
 import static ru.obolensk.afff.beetle.request.HttpHeaderValue.CONNECTION_CLOSE;
-import static ru.obolensk.afff.beetle.request.HttpMethod.CONNECT;
-import static ru.obolensk.afff.beetle.request.HttpMethod.DELETE;
-import static ru.obolensk.afff.beetle.request.HttpMethod.GET;
-import static ru.obolensk.afff.beetle.request.HttpMethod.HEAD;
-import static ru.obolensk.afff.beetle.request.HttpMethod.OPTIONS;
-import static ru.obolensk.afff.beetle.request.HttpMethod.POST;
-import static ru.obolensk.afff.beetle.request.HttpMethod.PUT;
-import static ru.obolensk.afff.beetle.request.HttpMethod.TRACE;
-import static ru.obolensk.afff.beetle.request.HttpMethod.UNKNOWN;
+import static ru.obolensk.afff.beetle.request.HttpMethod.*;
 import static ru.obolensk.afff.beetle.request.HttpVersion.HTTP_1_1;
 import static ru.obolensk.afff.beetle.settings.Options.REQUEST_MAX_LINE_LENGHT;
 import static ru.obolensk.afff.beetle.util.FileUtils.exists;
@@ -60,7 +47,7 @@ public class ClientConnection {
             String nextReq;
             while ((nextReq = reader.readLine()) != null) {
                 if (reader.isLineOverflow()) {
-                    ResponseWriter.sendUnparseableRequestAnswer(socket.getOutputStream(), HTTP_414);
+                    sendUnparseableRequestAnswer(socket.getOutputStream(), HTTP_414);
                     continue;
                 }
                 final RequestBuilder builder = new RequestBuilder(socket.getOutputStream(), nextReq);
@@ -81,12 +68,13 @@ public class ClientConnection {
                                 @Nonnull final BufferedReader reader,
                                 @Nonnull final Storage storage) throws IOException {
         //TODO add access rights
+        final ResponseWriter writer = new ResponseWriter(req);
         if (req.isInvalid()) {
             req.skipEntityQuietly();
-            ResponseWriter.sendEmptyAnswer(req, HTTP_400);
+            writer.sendEmptyAnswer(HTTP_400);
         } else if (req.getVersion() != HTTP_1_1) { //TODO support other versions
             req.skipEntityQuietly();
-            ResponseWriter.sendEmptyAnswer(req, HTTP_505);
+            writer.sendEmptyAnswer(HTTP_505);
         } else if (req.getMethod() == GET
                 || req.getMethod() == HEAD
                 || req.getMethod() == POST) {
@@ -100,12 +88,12 @@ public class ClientConnection {
                     }
                     case MULTIPART_FORM_DATA : { // TODO support multipart form data
                         req.skipEntityQuietly();
-                        ResponseWriter.sendEmptyAnswer(req, HTTP_415);
+                        writer.sendEmptyAnswer(HTTP_415);
                         return;
                     }
                     default:  {
                         req.skipEntityQuietly();
-                        ResponseWriter.sendEmptyAnswer(req, HTTP_415);
+                        writer.sendEmptyAnswer(HTTP_415);
                         return;
                     }
                 }
@@ -114,42 +102,42 @@ public class ClientConnection {
             }
             final Path file = storage.getFilePath(req.getLocalPath());
             if (!exists(file)) {
-                ResponseWriter.send404(req);
+                writer.send404();
             } else {
-                ResponseWriter.sendFile(req, file);
+                writer.sendFile(file);
             }
         } else if (req.getMethod() == PUT) {
-            ResponseWriter.sendEmptyAnswer(req, storage.putFile(req));
+            writer.sendEmptyAnswer(storage.putFile(req));
         } else if (req.getMethod() == DELETE) {
             req.skipEntityQuietly();
             final Path file = storage.getFilePath(req.getLocalPath());
             if (!exists(file)) {
-                ResponseWriter.send404(req);
+                writer.send404();
             } else {
                 try {
                     Files.delete(file);
-                    ResponseWriter.sendEmptyAnswer(req, HTTP_200);
+                    writer.sendEmptyAnswer(HTTP_200);
                 } catch (IOException e) {
-                    ResponseWriter.sendEmptyAnswer(req, HTTP_500);
+                    writer.sendEmptyAnswer(HTTP_500);
                 }
             }
         } else if (req.getMethod() == OPTIONS) {
             //TODO support options for nested resources
             req.skipEntityQuietly();
             final List<HttpMethod> supportedMethods = asList(HEAD, GET, POST, PUT, DELETE, OPTIONS, TRACE);
-            ResponseWriter.sendOptions(req, supportedMethods);
+            writer.sendOptions(supportedMethods);
         } else if (req.getMethod() == TRACE) {
             req.skipEntityQuietly();
-            ResponseWriter.sendAnswer(req, HTTP_200, MESSAGE_HTTP, req.getRawData());
+            writer.sendAnswer(HTTP_200, MESSAGE_HTTP, req.getRawData());
         } else if (req.getMethod() == CONNECT) {
             req.skipEntityQuietly();
-            ResponseWriter.sendConnected(req);
+            writer.sendConnected();
         } else if (req.getMethod() == UNKNOWN) {
             req.skipEntityQuietly();
-            ResponseWriter.sendEmptyAnswer(req, HTTP_505);
+            writer.sendEmptyAnswer(HTTP_505);
         } else {
             req.skipEntityQuietly();
-            ResponseWriter.sendEmptyAnswer(req, HTTP_501);
+            writer.sendEmptyAnswer(HTTP_501);
         }
     }
 

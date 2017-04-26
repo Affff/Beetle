@@ -25,74 +25,82 @@ public class ResponseWriter {
 
     private static final Logger logger = new Logger(ResponseWriter.class);
 
-    public static void sendAnswer(@Nonnull final Request req, @Nonnull final HttpCode code, @Nonnull final MimeType mimeType, @Nonnull final String content) {
-        final Writer writer = writeHeader(req, code);
+    private final Request request;
+
+    public ResponseWriter(@Nonnull final Request request) {
+        this.request = request;
+    }
+
+    public void sendAnswer(@Nonnull final HttpCode code, @Nonnull final MimeType mimeType, @Nonnull final String content) {
+        final Writer writer = writeHeader(code);
         final int length = content.getBytes(StandardCharsets.UTF_8).length;
         if (length != 0) {
             writer.println(CONTENT_TYPE.getName() + ":" + mimeType.getName() + charsetAttr(mimeType));
         }
         writer.println(CONTENT_LENGTH.getName() + ": " + length);
         writer.println();
-        if (length != 0 && req.shouldWriteBody()) { // HEAD method mustn't have body
-            writer.println(content);
+        if (length != 0 && request.shouldWriteBody()) { // HEAD method mustn't have body
+            writer.write(content);
         }
         writer.flush();
     }
 
     @Nonnull
-    private static String charsetAttr(@Nonnull final MimeType mimeType) {
+    private String charsetAttr(@Nonnull final MimeType mimeType) {
         if (mimeType.getCharset() == null) {
             return "";
         }
         return "; charset=" + mimeType.getCharset().name();
     }
 
-    public static void sendOptions(Request req, List<HttpMethod> options) {
-        final Writer writer = writeHeader(req, HttpCode.HTTP_200);
+    public void sendOptions(List<HttpMethod> options) {
+        final Writer writer = writeHeader(HttpCode.HTTP_200);
         final StringJoiner joiner = new StringJoiner("");
         options.forEach(option -> joiner.add(option.name()));
         writer.println(HttpHeader.ALLOW.getName() + ":" + joiner.toString());
         writer.flush();
     }
 
-    public static void sendConnected(@Nonnull final Request req) {
-        final Writer writer = req.getWriter();
-        writer.println(req.getVersion().getName() + " " + HttpCode.HTTP_200 + " Connection established");
+    public void sendConnected() {
+        final Writer writer = request.getWriter();
+        writer.println(request.getVersion().getName() + " " + HttpCode.HTTP_200 + " Connection established");
         writer.println(DATE.getName() + ": " + DateUtil.getHttpTime());
         writer.println(SERVER.getName() + ": " + Version.nameAndVersion());
         writer.flush();
     }
 
-    public static void sendEmptyAnswer(@Nonnull final Request req, @Nonnull final HttpCode code) {
-        sendAnswer(req, code, TEXT_HTML, "");
+    public void sendEmptyAnswer(@Nonnull final HttpCode code) {
+        sendAnswer(code, TEXT_HTML, "");
     }
 
     public static void sendUnparseableRequestAnswer(@Nonnull final OutputStream out, @Nonnull final HttpCode code) {
-        sendEmptyAnswer(new RequestBuilder(out,"UNKNOWN / HTTP/1.1").build(), code);
+        final ResponseWriter writer = new ResponseWriter(new RequestBuilder(out,"UNKNOWN / HTTP/1.1").build());
+        writer.sendEmptyAnswer(code);
     }
 
-    public static void sendFile(@Nonnull final Request req, @Nonnull final Path path) {
-        final HttpCode code = HttpCode.HTTP_200;
+    public void sendFile(@Nonnull final Path path) {
+        HttpCode code = HttpCode.HTTP_200;
         String answer;
         try {
             answer = Files.toString(path.toFile(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             logger.error(e);
             answer = "";
+            code = HttpCode.HTTP_500;
         }
-        sendAnswer(req, code, TEXT_HTML, answer);
+        sendAnswer(code, TEXT_HTML, answer);
     }
 
-    public static void send404(@Nonnull final Request req) {
+    public void send404() {
         final HttpCode code = HttpCode.HTTP_404;
         String answer = "<html><header><meta charset=\"UTF-8\"><title>" + Version.nameAndVersion() + ": " + + code.getCode() + " " + code.getDescr() + "</title></header>"
-            + "<body>Requested URI '" + req.getUri() + "' wasn't found.</body></html>";
-        sendAnswer(req, code, TEXT_HTML, answer);
+            + "<body>Requested URI '" + request.getUri() + "' wasn't found.</body></html>";
+        sendAnswer(code, TEXT_HTML, answer);
     }
 
-    private static Writer writeHeader(@Nonnull final Request req, @Nonnull final HttpCode code) {
-        final Writer writer = req.getWriter();
-        writer.println(req.getVersion().getName() + " " + code.getCode() + " " + code.getDescr());
+    private Writer writeHeader(@Nonnull final HttpCode code) {
+        final Writer writer = request.getWriter();
+        writer.println(request.getVersion().getName() + " " + code.getCode() + " " + code.getDescr());
         writer.println(DATE.getName() + ": " + DateUtil.getHttpTime());
         writer.println(SERVER.getName() + ": " + Version.nameAndVersion());
         return writer;
