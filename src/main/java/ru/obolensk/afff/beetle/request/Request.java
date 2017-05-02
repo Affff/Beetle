@@ -14,8 +14,8 @@ import ru.obolensk.afff.beetle.util.UriUtil;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.net.URI;
 import java.util.Collection;
 import java.util.HashMap;
@@ -35,6 +35,9 @@ public class Request {
     private static final Logger logger = new Logger(Request.class);
 
     @Nonnull @Getter
+    private final Reader reader;
+
+    @Nonnull @Getter
     private final OutputStream outputStream;
 
     @Nonnull @Getter
@@ -47,7 +50,7 @@ public class Request {
     private final HttpMethod method;
 
     @Nullable @Getter
-    private final java.net.URI uri;
+    private final URI uri;
 
     @Nonnull @Getter
     private final HttpVersion version;
@@ -64,21 +67,20 @@ public class Request {
     @Nullable @Getter @Setter(PROTECTED)
     private Integer entitySize;
 
-    @Nullable @Getter @Setter(PROTECTED)
-    private InputStream entityStream;
-
-    private Request(@Nonnull final OutputStream outputStream, @Nonnull final String method, @Nonnull final String uri, @Nonnull final String version) {
-        this(outputStream, HttpMethod.decode(method), uri, HttpVersion.decode(version));
+    private Request(@Nonnull final Reader reader, @Nonnull final OutputStream outputStream, @Nonnull final String method, @Nonnull final String uri, @Nonnull final String version) {
+        this(reader, outputStream, HttpMethod.decode(method), uri, HttpVersion.decode(version));
     }
 
-    private Request(@Nonnull final OutputStream outputStream) {
-        this(outputStream, HttpMethod.UNKNOWN, null, HttpVersion.UNKNOWN);
+    private Request(@Nonnull final Reader reader, @Nonnull final OutputStream outputStream) {
+        this(reader, outputStream, HttpMethod.UNKNOWN, null, HttpVersion.UNKNOWN);
     }
 
-    private Request(@Nonnull final OutputStream outputStream,
+    private Request(@Nonnull final Reader reader,
+                    @Nonnull final OutputStream outputStream,
                     @Nonnull final HttpMethod method,
                     @Nullable final String uri,
                     @Nonnull final HttpVersion version) {
+        this.reader = reader;
         this.outputStream = outputStream;
         this.writer = new LoggablePrintWriter(outputStream, logger);
         this.method = method;
@@ -87,8 +89,8 @@ public class Request {
         this.invalid = method == HttpMethod.UNKNOWN || uri == null || version == HttpVersion.UNKNOWN;
     }
 
-    static Request makeNew(@Nonnull final OutputStream outputStream, @Nonnull final String method, @Nonnull final String uri, @Nonnull final String version) {
-        return new Request(outputStream, method, uri, version);
+    static Request makeNew(@Nonnull final Reader reader, @Nonnull final OutputStream outputStream, @Nonnull final String method, @Nonnull final String uri, @Nonnull final String version) {
+        return new Request(reader, outputStream, method, uri, version);
     }
 
     void addHeader(@Nonnull final String name, @Nullable final String... values) {
@@ -143,7 +145,7 @@ public class Request {
     public void skipEntityQuietly() {
         if (entitySize != null) {
             try {
-                entityStream.skip(entitySize);
+                reader.skip(entitySize);
             } catch (IOException e) {
                 logger.error(e);
             }

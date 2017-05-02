@@ -31,6 +31,7 @@ public class HttpTestClient implements Closeable {
 
     private HttpTestClient(final int port, @Nonnull final HttpVersion version) throws IOException {
         this.socket = new Socket("localhost", port);
+        this.socket.setTcpNoDelay(true);
         this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
         this.version = version;
@@ -59,6 +60,7 @@ public class HttpTestClient implements Closeable {
         if (contentBytes != null) {
             System.out.println("[TEST] write " + contentBytes.length + " bytes of content.");
             writer.write(contentBytes);
+            System.out.println("[TEST] content >> " + content);
             System.out.println("[TEST] content was written.");
         }
         writer.flush();

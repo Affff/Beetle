@@ -5,8 +5,8 @@ import ru.obolensk.afff.beetle.log.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Reader;
 
 /**
  * Created by Afff on 10.04.2017.
@@ -21,9 +21,9 @@ public class RequestBuilder {
     @Nonnull
     private final StringBuilder rawRequest = new StringBuilder();
 
-    public RequestBuilder(@Nonnull final OutputStream outputStream, @Nonnull final String requestStr) {
+    public RequestBuilder(@Nonnull final Reader reader, @Nonnull final OutputStream outputStream, @Nonnull final String requestStr) {
         final String[] components = requestStr.split("\\s");
-        request = Request.makeNew(outputStream, components[0], components[1], components[2]);
+        request = Request.makeNew(reader, outputStream, components[0], components[1], components[2]);
         rawRequest.append(requestStr).append("\r\n");
     }
 
@@ -42,13 +42,12 @@ public class RequestBuilder {
         }
         return false;
     }
-
-    public void appendEntityIfExists(@Nonnull final InputStream inputStream) {
-        final Integer entitySize = entitySize();
-        if (entitySize != null) {
-            request.setEntitySize(entitySize);
-            request.setEntityStream(inputStream);
-        }
+    @Nonnull
+    public Request build() {
+        request.setEntitySize(entitySize());
+        request.setRawData(rawRequest.toString());
+        logger.trace("IN>>>" + request.getRawData());
+        return request;
     }
 
     @Nullable
@@ -60,10 +59,4 @@ public class RequestBuilder {
         return null;
     }
 
-    @Nonnull
-    public Request build() {
-        request.setRawData(rawRequest.toString());
-        logger.trace("IN>>>" + request.getRawData());
-        return request;
-    }
 }

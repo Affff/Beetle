@@ -9,7 +9,7 @@ import ru.obolensk.afff.beetle.settings.Config;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -74,8 +74,8 @@ public class Storage {
                     Files.createDirectories(file.getParent());
                 }
                 tempFile = Files.createTempFile(file.getFileName().toString(), "_temp");
-                final OutputStream outputStream = Files.newOutputStream(tempFile);
-                final int actualSize = copy(req.getEntityStream(), outputStream, size);
+                final Writer writer = Files.newBufferedWriter(tempFile);
+                final int actualSize = copy(req.getReader(), writer, size);
                 if (actualSize == size) {
                     Files.move(tempFile, file, REPLACE_EXISTING);
                 } else {

@@ -15,7 +15,7 @@ public enum Options {
     WWW_ROOT_DIR(Paths.get("c:/www")),
     WELCOME_FILE_NAME("index.html"),
     SERVER_THREAD_COUNT(5),
-    REQUEST_MAX_LINE_LENGHT(8192)
+    REQUEST_MAX_LINE_LENGTH(8192)
     ;
 
     Options(@Nonnull final Object defaultValue) {

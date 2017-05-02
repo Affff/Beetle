@@ -10,21 +10,21 @@ import java.io.Reader;
  */
 public class LimitedBufferedReader extends BufferedReader {
 
-    private final int maxLineLenght;
+    private final int maxLineLength;
 
     private boolean lineOverflow;
 
-    public LimitedBufferedReader(@Nonnull final Reader reader, final int maxLineLenght) {
+    public LimitedBufferedReader(@Nonnull final Reader reader, final int maxLineLength) {
         super(reader);
-        if (maxLineLenght <= 0) {
-            throw new IllegalArgumentException("maxLineLenght must be positive!");
+        if (maxLineLength <= 0) {
+            throw new IllegalArgumentException("maxLineLength must be positive!");
         }
-        this.maxLineLenght = maxLineLenght;
+        this.maxLineLength = maxLineLength;
     }
 
     @Override
     public String readLine() throws IOException {
-        final char[] data = new char[maxLineLenght];
+        final char[] data = new char[maxLineLength];
         final int CR = 13;
         final int LF = 10;
 
@@ -33,7 +33,7 @@ public class LimitedBufferedReader extends BufferedReader {
 
         while( (currentCharVal != CR) && (currentCharVal != LF) && (currentCharVal >= 0)) {
             data[currentPos++] = (char) currentCharVal;
-            if (currentPos < maxLineLenght) {
+            if (currentPos < maxLineLength) {
                 currentCharVal = super.read();
             } else {
                 lineOverflow = true;

@@ -4,8 +4,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import ru.obolensk.afff.beetle.request.HttpCode;
-import ru.obolensk.afff.beetle.request.HttpMethod;
 import ru.obolensk.afff.beetle.settings.ServerConfig;
 import ru.obolensk.afff.beetle.test.HttpTestClient;
 import ru.obolensk.afff.beetle.test.ServerAnswer;
@@ -22,8 +20,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readAllLines;
 import static ru.obolensk.afff.beetle.conn.MimeType.APPLICATION_X_WWW_FORM_URLENCODED;
 import static ru.obolensk.afff.beetle.conn.MimeType.TEXT_PLAIN;
-import static ru.obolensk.afff.beetle.request.HttpCode.HTTP_415;
-import static ru.obolensk.afff.beetle.settings.Options.REQUEST_MAX_LINE_LENGHT;
+import static ru.obolensk.afff.beetle.request.HttpCode.*;
+import static ru.obolensk.afff.beetle.request.HttpMethod.*;
+import static ru.obolensk.afff.beetle.settings.Options.REQUEST_MAX_LINE_LENGTH;
 import static ru.obolensk.afff.beetle.settings.Options.WWW_ROOT_DIR;
 
 /**
@@ -31,7 +30,7 @@ import static ru.obolensk.afff.beetle.settings.Options.WWW_ROOT_DIR;
  */
 public class ServerTest {
 
-    private static final boolean TEST_PROXY_ENABLED = true;
+    private static final boolean TEST_PROXY_ENABLED = false;
     private static final int PROXY_PORT = 4079;
     private static final int SERVER_PORT = 4080;
 
@@ -56,7 +55,9 @@ public class ServerTest {
     @AfterClass
     public static void destroy() throws IOException {
         try {
-            proxy.close();
+            if (proxy != null) {
+                proxy.close();
+            }
         } finally {
             server.close();
         }
@@ -65,8 +66,8 @@ public class ServerTest {
     @Test
     public void simpleGetTest() throws IOException, URISyntaxException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
-            final ServerAnswer result = client.sendRequest(HttpMethod.GET, "/", null, null);
-            Assert.assertEquals(HttpCode.HTTP_200, result.getCode());
+            final ServerAnswer result = client.sendRequest(GET, "/", null, null);
+            Assert.assertEquals(HTTP_200, result.getCode());
             Assert.assertEquals(readFileAsString("/www/index.html"), result.getReceivedContent());
         }
     }
@@ -74,8 +75,8 @@ public class ServerTest {
     @Test
     public void nestedGetTest() throws IOException, URISyntaxException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
-            final ServerAnswer result = client.sendRequest(HttpMethod.GET, "/test/test.html", null, null);
-            Assert.assertEquals(HttpCode.HTTP_200, result.getCode());
+            final ServerAnswer result = client.sendRequest(GET, "/test/test.html", null, null);
+            Assert.assertEquals(HTTP_200, result.getCode());
             Assert.assertEquals(readFileAsString("/www/test/test.html"), result.getReceivedContent());
         }
     }
@@ -83,8 +84,8 @@ public class ServerTest {
     @Test
     public void getParametersTest() throws IOException, URISyntaxException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
-            final ServerAnswer result = client.sendRequest(HttpMethod.GET, "/test/test.html?test1=test1&test2=" + encode("другой язык", UTF_8.name()), null, null);
-            Assert.assertEquals(HttpCode.HTTP_200, result.getCode());
+            final ServerAnswer result = client.sendRequest(GET, "/test/test.html?test1=test1&test2=" + encode("другой язык", UTF_8.name()), null, null);
+            Assert.assertEquals(HTTP_200, result.getCode());
             Assert.assertEquals(readFileAsString("/www/test/test.html"), result.getReceivedContent());
             // TODO check input parameters values with servlet
         }
@@ -93,8 +94,8 @@ public class ServerTest {
     @Test
     public void simplePostTest() throws IOException, URISyntaxException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
-            final ServerAnswer result = client.sendRequest(HttpMethod.POST, "/", null, APPLICATION_X_WWW_FORM_URLENCODED);
-            Assert.assertEquals(HttpCode.HTTP_200, result.getCode());
+            final ServerAnswer result = client.sendRequest(POST, "/", null, APPLICATION_X_WWW_FORM_URLENCODED);
+            Assert.assertEquals(HTTP_200, result.getCode());
             Assert.assertEquals(readFileAsString("/www/index.html"), result.getReceivedContent());
         }
     }
@@ -102,7 +103,7 @@ public class ServerTest {
     @Test
     public void plainPostUnsupportedTest() throws IOException, URISyntaxException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
-            final ServerAnswer result = client.sendRequest(HttpMethod.POST, "/", null, TEXT_PLAIN);
+            final ServerAnswer result = client.sendRequest(POST, "/", null, TEXT_PLAIN);
             Assert.assertEquals(HTTP_415, result.getCode());
             Assert.assertNull(result.getReceivedContent());
         }
@@ -112,8 +113,8 @@ public class ServerTest {
     public void parametersPostTest() throws IOException, URISyntaxException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
             final String params = "test1=test1&test2=" + encode("другой язык", UTF_8.name());
-            final ServerAnswer result = client.sendRequest(HttpMethod.POST, "/", params, APPLICATION_X_WWW_FORM_URLENCODED);
-            Assert.assertEquals(HttpCode.HTTP_200, result.getCode());
+            final ServerAnswer result = client.sendRequest(POST, "/", params, APPLICATION_X_WWW_FORM_URLENCODED);
+            Assert.assertEquals(HTTP_200, result.getCode());
             Assert.assertEquals(readFileAsString("/www/index.html"), result.getReceivedContent());
         }
     }
@@ -121,8 +122,8 @@ public class ServerTest {
     @Test
     public void nestedPostTest() throws IOException, URISyntaxException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
-            final ServerAnswer result = client.sendRequest(HttpMethod.POST, "/test/test.html", null, APPLICATION_X_WWW_FORM_URLENCODED);
-            Assert.assertEquals(HttpCode.HTTP_200, result.getCode());
+            final ServerAnswer result = client.sendRequest(POST, "/test/test.html", null, APPLICATION_X_WWW_FORM_URLENCODED);
+            Assert.assertEquals(HTTP_200, result.getCode());
             Assert.assertEquals(readFileAsString("/www/test/test.html"), result.getReceivedContent());
         }
     }
@@ -130,8 +131,8 @@ public class ServerTest {
     @Test
     public void simpleHeadTest() throws IOException, URISyntaxException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
-            final ServerAnswer result = client.sendRequest(HttpMethod.HEAD, "/", null, null);
-            Assert.assertEquals(HttpCode.HTTP_200, result.getCode());
+            final ServerAnswer result = client.sendRequest(HEAD, "/", null, null);
+            Assert.assertEquals(HTTP_200, result.getCode());
             Assert.assertEquals(null, result.getReceivedContent());
         }
     }
@@ -139,35 +140,35 @@ public class ServerTest {
     @Test
     public void simplePutDeleteTest() throws IOException, URISyntaxException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
-            final ServerAnswer result = client.sendRequest(HttpMethod.PUT, "/to_delete/delete.html", readFileAsString("/www/index.html"), TEXT_PLAIN);
-            Assert.assertEquals(HttpCode.HTTP_201, result.getCode());
+            final ServerAnswer result = client.sendRequest(PUT, "/to_delete/delete.html", readFileAsString("/www/index.html"), TEXT_PLAIN);
+            Assert.assertEquals(HTTP_201, result.getCode());
             Assert.assertEquals(null, result.getReceivedContent());
-            final ServerAnswer result2 = client.sendRequest(HttpMethod.PUT, "/to_delete/delete1.html", readFileAsString("/www/index.html"), TEXT_PLAIN);
-            Assert.assertEquals(HttpCode.HTTP_201, result2.getCode());
+            final ServerAnswer result2 = client.sendRequest(PUT, "/to_delete/delete.html", readFileAsString("/www/index.html"), TEXT_PLAIN);
+            Assert.assertEquals(HTTP_200, result2.getCode());
             Assert.assertEquals(null, result2.getReceivedContent());
-            final ServerAnswer result3 = client.sendRequest(HttpMethod.DELETE, "/to_delete/delete.html", null, null);
-            Assert.assertEquals(HttpCode.HTTP_200, result3.getCode());
+            final ServerAnswer result3 = client.sendRequest(DELETE, "/to_delete/delete.html", null, null);
+            Assert.assertEquals(HTTP_200, result3.getCode());
             Assert.assertEquals(null, result3.getReceivedContent());
         }
     }
 
     @Test
     public void tooLongRequestTest() throws IOException, URISyntaxException, InterruptedException {
-        config.set(REQUEST_MAX_LINE_LENGHT, 1);
+        config.set(REQUEST_MAX_LINE_LENGTH, 1);
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
-            final ServerAnswer result = client.sendRequest(HttpMethod.GET, "/test", null, null);
-            Assert.assertEquals(HttpCode.HTTP_414, result.getCode());
+            final ServerAnswer result = client.sendRequest(GET, "/test", null, null);
+            Assert.assertEquals(HTTP_414, result.getCode());
             Assert.assertNull(result.getReceivedContent());
         } finally {
-            config.set(REQUEST_MAX_LINE_LENGHT, REQUEST_MAX_LINE_LENGHT.getDefaultValue());
+            config.set(REQUEST_MAX_LINE_LENGTH, REQUEST_MAX_LINE_LENGTH.getDefaultValue());
         }
     }
 
     @Test
     public void outOfWwwRootAttackTest() throws IOException, URISyntaxException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
-            final ServerAnswer result = client.sendRequest(HttpMethod.GET, "/../test/../", null, null);
-            Assert.assertEquals(HttpCode.HTTP_404, result.getCode());
+            final ServerAnswer result = client.sendRequest(GET, "/../test/../", null, null);
+            Assert.assertEquals(HTTP_404, result.getCode());
             Assert.assertNotNull(result.getReceivedContent());
         }
     }

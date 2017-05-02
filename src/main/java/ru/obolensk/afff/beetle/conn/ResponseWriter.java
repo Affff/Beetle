@@ -10,6 +10,7 @@ import ru.obolensk.afff.beetle.util.DateUtil;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
@@ -74,7 +75,7 @@ public class ResponseWriter {
     }
 
     public static void sendUnparseableRequestAnswer(@Nonnull final OutputStream out, @Nonnull final HttpCode code) {
-        final ResponseWriter writer = new ResponseWriter(new RequestBuilder(out,"UNKNOWN / HTTP/1.1").build());
+        final ResponseWriter writer = new ResponseWriter(new RequestBuilder(new StringReader(""), out,"UNKNOWN / HTTP/1.1").build());
         writer.sendEmptyAnswer(code);
     }
 

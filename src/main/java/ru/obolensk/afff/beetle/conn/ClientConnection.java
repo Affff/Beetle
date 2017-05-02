@@ -10,9 +10,10 @@ import ru.obolensk.afff.beetle.request.RequestBuilder;
 import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
 
 import javax.annotation.Nonnull;
-import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,8 +26,9 @@ import static ru.obolensk.afff.beetle.request.HttpCode.*;
 import static ru.obolensk.afff.beetle.request.HttpHeaderValue.CONNECTION_CLOSE;
 import static ru.obolensk.afff.beetle.request.HttpMethod.*;
 import static ru.obolensk.afff.beetle.request.HttpVersion.HTTP_1_1;
-import static ru.obolensk.afff.beetle.settings.Options.REQUEST_MAX_LINE_LENGHT;
+import static ru.obolensk.afff.beetle.settings.Options.REQUEST_MAX_LINE_LENGTH;
 import static ru.obolensk.afff.beetle.util.FileUtils.exists;
+import static ru.obolensk.afff.beetle.util.StreamUtil.readAsString;
 
 
 /**
@@ -41,20 +43,21 @@ public class ClientConnection {
 
     public ClientConnection(@Nonnull final BeetleServer server, @Nonnull final Socket socket) throws IOException {
         logger.debug("Open client connection from {}:{}", socket.getInetAddress(), socket.getPort());
-        final int maxLineLimit = server.getConfig().get(REQUEST_MAX_LINE_LENGHT);
+        final int maxLineLimit = server.getConfig().get(REQUEST_MAX_LINE_LENGTH);
+        final InputStream inputStream = socket.getInputStream();
+        final OutputStream outputStream = socket.getOutputStream();
         try (final LimitedBufferedReader reader
-                     = new LimitedBufferedReader(new InputStreamReader(socket.getInputStream()), maxLineLimit)) {
+                     = new LimitedBufferedReader(new InputStreamReader(inputStream), maxLineLimit)) {
             String nextReq;
             while ((nextReq = reader.readLine()) != null) {
                 if (reader.isLineOverflow()) {
-                    sendUnparseableRequestAnswer(socket.getOutputStream(), HTTP_414);
+                    sendUnparseableRequestAnswer(outputStream, HTTP_414);
                     continue;
                 }
-                final RequestBuilder builder = new RequestBuilder(socket.getOutputStream(), nextReq);
+                final RequestBuilder builder = new RequestBuilder(reader, outputStream, nextReq);
                 while (builder.addHeader(reader.readLine())) ;
-                builder.appendEntityIfExists(socket.getInputStream());
                 final Request req = builder.build();
-                proceedRequest(req, reader, server.getStorage());
+                proceedRequest(req, server.getStorage());
                 if (closeRequested(req)) {
                     break;
                 }
@@ -65,7 +68,6 @@ public class ClientConnection {
     }
 
     private void proceedRequest(@Nonnull final Request req,
-                                @Nonnull final BufferedReader reader,
                                 @Nonnull final Storage storage) throws IOException {
         //TODO add access rights
         final ResponseWriter writer = new ResponseWriter(req);
@@ -82,7 +84,7 @@ public class ClientConnection {
                 switch(req.getContentType()) {
                     case APPLICATION_X_WWW_FORM_URLENCODED: {
                         if (req.hasEntity()) {
-                            req.parseParams(reader.readLine());
+                            req.parseParams(readAsString(req.getReader(), req.getEntitySize()));
                         }
                         break;
                     }
