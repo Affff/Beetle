@@ -9,6 +9,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
+import java.util.Collections;
+import java.util.List;
 
 import static ru.obolensk.afff.beetle.request.HttpHeader.*;
 import static ru.obolensk.afff.beetle.request.HttpHeaderValue.CONNECTION_KEEP_ALIVE;
@@ -41,6 +44,14 @@ public class HttpTestClient implements Closeable {
                                     @Nonnull final String path,
                                     @Nullable final String content,
                                     @Nullable final MimeType contentType) throws IOException {
+        return sendRequest(method, path, Collections.emptyList(), content, contentType);
+    }
+
+    public ServerAnswer sendRequest(@Nonnull final HttpMethod method,
+                                    @Nonnull final String path,
+                                    @Nullable final List<HeaderValue> headers,
+                                    @Nullable final String content,
+                                    @Nullable final MimeType contentType) throws IOException {
         System.out.println("[TEST] wrote request " + method.name() + " " + path + " " + version.getName());
         writer.write(method.name() + " " + path + " " + version.getName());
         writer.newLine();
@@ -56,6 +67,12 @@ public class HttpTestClient implements Closeable {
         }
         writer.write(CONNECTION.getName() + ": " + CONNECTION_KEEP_ALIVE.getName());
         writer.newLine();
+        if (headers != null) {
+            for (final HeaderValue header : headers) {
+                writer.write(header.toString());
+                writer.newLine();
+            }
+        }
         writer.newLine();
         if (contentBytes != null) {
             System.out.println("[TEST] write " + contentBytes.length + " bytes of content.");
@@ -65,6 +82,9 @@ public class HttpTestClient implements Closeable {
         }
         writer.flush();
         final String response = reader.readLine();
+        if (response == null) {
+            throw new SocketException("Connection has already closed!");
+        }
         System.out.println("[TEST] read response: " + response);
         final HttpCode statusCode = HttpCode.valueOf("HTTP_" + response.substring("HTTP/1.1 ".length(), "HTTP/1.1 ".length() + 3));
         int contentSize = 0;

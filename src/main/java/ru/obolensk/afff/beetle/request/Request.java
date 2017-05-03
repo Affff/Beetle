@@ -104,11 +104,22 @@ public class Request {
 
     @Nullable
     public String getHeaderValue(@Nonnull final HttpHeader header) {
-        Collection<String> values = headers.get(header);
+        final Collection<String> values = headers.get(header);
         if (values == null || values.isEmpty()) {
             return null;
         }
         return values.iterator().next();
+    }
+
+    public boolean hasHeaderValue(@Nonnull final HttpHeader header,
+                                  @Nonnull final HttpHeaderValue value) {
+        final Collection<String> values = headers.get(header);
+        for (final String item : values) {
+            if (value.getName().equals(item.toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Nullable

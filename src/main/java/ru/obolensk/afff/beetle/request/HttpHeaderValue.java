@@ -15,6 +15,6 @@ public enum HttpHeaderValue {
     private final String name;
 
     HttpHeaderValue(final String name) {
-        this.name = name;
+        this.name = name.toLowerCase();
     }
 }

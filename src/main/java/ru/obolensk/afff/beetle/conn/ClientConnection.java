@@ -3,7 +3,6 @@ package ru.obolensk.afff.beetle.conn;
 import ru.obolensk.afff.beetle.BeetleServer;
 import ru.obolensk.afff.beetle.Storage;
 import ru.obolensk.afff.beetle.log.Logger;
-import ru.obolensk.afff.beetle.request.HttpHeader;
 import ru.obolensk.afff.beetle.request.HttpMethod;
 import ru.obolensk.afff.beetle.request.Request;
 import ru.obolensk.afff.beetle.request.RequestBuilder;
@@ -23,6 +22,7 @@ import static java.util.Arrays.asList;
 import static ru.obolensk.afff.beetle.conn.MimeType.MESSAGE_HTTP;
 import static ru.obolensk.afff.beetle.conn.ResponseWriter.sendUnparseableRequestAnswer;
 import static ru.obolensk.afff.beetle.request.HttpCode.*;
+import static ru.obolensk.afff.beetle.request.HttpHeader.CONNECTION;
 import static ru.obolensk.afff.beetle.request.HttpHeaderValue.CONNECTION_CLOSE;
 import static ru.obolensk.afff.beetle.request.HttpMethod.*;
 import static ru.obolensk.afff.beetle.request.HttpVersion.HTTP_1_1;
@@ -144,7 +144,6 @@ public class ClientConnection {
     }
 
     private boolean closeRequested(@Nonnull final Request req) {
-        return req.getHeaderValue(HttpHeader.CONNECTION) //TODO search all values for close, not only the first
-                .equalsIgnoreCase(CONNECTION_CLOSE.getName());
+        return req.hasHeaderValue(CONNECTION, CONNECTION_CLOSE);
     }
 }
