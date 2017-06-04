@@ -4,6 +4,7 @@ import ru.obolensk.afff.beetle.BeetleServer;
 import ru.obolensk.afff.beetle.Storage;
 import ru.obolensk.afff.beetle.log.Logger;
 import ru.obolensk.afff.beetle.request.HttpMethod;
+import ru.obolensk.afff.beetle.request.MultipartDataProcessor;
 import ru.obolensk.afff.beetle.request.Request;
 import ru.obolensk.afff.beetle.request.RequestBuilder;
 import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
@@ -23,7 +24,9 @@ import static ru.obolensk.afff.beetle.conn.MimeType.MESSAGE_HTTP;
 import static ru.obolensk.afff.beetle.conn.ResponseWriter.sendUnparseableRequestAnswer;
 import static ru.obolensk.afff.beetle.request.HttpCode.*;
 import static ru.obolensk.afff.beetle.request.HttpHeader.CONNECTION;
+import static ru.obolensk.afff.beetle.request.HttpHeader.CONTENT_TYPE;
 import static ru.obolensk.afff.beetle.request.HttpHeaderValue.CONNECTION_CLOSE;
+import static ru.obolensk.afff.beetle.request.HttpHeaderValueAttribute.BOUNDARY;
 import static ru.obolensk.afff.beetle.request.HttpMethod.*;
 import static ru.obolensk.afff.beetle.request.HttpVersion.HTTP_1_1;
 import static ru.obolensk.afff.beetle.settings.Options.REQUEST_MAX_LINE_LENGTH;
@@ -69,7 +72,6 @@ public class ClientConnection {
 
     private void proceedRequest(@Nonnull final Request req,
                                 @Nonnull final Storage storage) throws IOException {
-        //TODO add access rights
         final ResponseWriter writer = new ResponseWriter(req);
         if (req.isInvalid()) {
             req.skipEntityQuietly();
@@ -88,10 +90,22 @@ public class ClientConnection {
                         }
                         break;
                     }
-                    case MULTIPART_FORM_DATA : { // TODO support multipart form data
-                        req.skipEntityQuietly();
-                        writer.sendEmptyAnswer(HTTP_415);
-                        return;
+                    case MULTIPART_FORM_DATA : {
+                        final String boundary = req.getHeaderAttribute(CONTENT_TYPE, BOUNDARY);
+                        final Integer entitySize = req.getEntitySize();
+                        if (boundary == null || entitySize == null) {
+                            req.skipEntityQuietly();
+                            writer.sendEmptyAnswer(HTTP_400);
+                            return;
+                        }
+                        int counter = entitySize;
+                        final MultipartDataProcessor processor = new MultipartDataProcessor(req, boundary);
+                        while (counter > 0) {
+                            if (!processor.step(req.getReader().readLine())) {
+                                break;
+                            }
+                            counter -= req.getReader().getLastLineSize();
+                        }
                     }
                     default:  {
                         req.skipEntityQuietly();
@@ -124,7 +138,6 @@ public class ClientConnection {
                 }
             }
         } else if (req.getMethod() == OPTIONS) {
-            //TODO support options for nested resources
             req.skipEntityQuietly();
             final List<HttpMethod> supportedMethods = asList(HEAD, GET, POST, PUT, DELETE, OPTIONS, TRACE);
             writer.sendOptions(supportedMethods);

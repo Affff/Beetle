@@ -1,5 +1,7 @@
 package ru.obolensk.afff.beetle.stream;
 
+import lombok.Getter;
+
 import javax.annotation.Nonnull;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -10,9 +12,14 @@ import java.io.Reader;
  */
 public class LimitedBufferedReader extends BufferedReader {
 
+    private static final int CTRL_CH_COUNT = 2; // CR + LF
+
     private final int maxLineLength;
 
     private boolean lineOverflow;
+
+    @Getter
+    private int lastLineSize;
 
     public LimitedBufferedReader(@Nonnull final Reader reader, final int maxLineLength) {
         super(reader);
@@ -44,6 +51,7 @@ public class LimitedBufferedReader extends BufferedReader {
         if (currentCharVal < 0 ) {
             // stream is over, return current buffer or null if the buffer is empty
             if (currentPos > 0) {
+                lastLineSize = currentPos;
                 return new String(data, 0, currentPos);
             } else {
                 return null;
@@ -56,6 +64,7 @@ public class LimitedBufferedReader extends BufferedReader {
                     super.reset();
                 }
             }
+            lastLineSize = currentPos + CTRL_CH_COUNT;
             return new String(data, 0, currentPos);
         }
     }

@@ -9,15 +9,15 @@ import ru.obolensk.afff.beetle.conn.MimeType;
 import ru.obolensk.afff.beetle.log.LoggablePrintWriter;
 import ru.obolensk.afff.beetle.log.Logger;
 import ru.obolensk.afff.beetle.log.Writer;
+import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
+import ru.obolensk.afff.beetle.util.RequestUtil;
 import ru.obolensk.afff.beetle.util.UriUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.Reader;
 import java.net.URI;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,7 +35,7 @@ public class Request {
     private static final Logger logger = new Logger(Request.class);
 
     @Nonnull @Getter
-    private final Reader reader;
+    private final LimitedBufferedReader reader;
 
     @Nonnull @Getter
     private final OutputStream outputStream;
@@ -59,7 +59,7 @@ public class Request {
     private final Map<String, String> parameters = new HashMap<>();
 
     @Nonnull @Getter
-    private final Multimap<HttpHeader, String> headers = LinkedListMultimap.create();
+    private final Multimap<HttpHeader, AttributedValue> headers = LinkedListMultimap.create();
 
     @Getter
     private final boolean invalid;
@@ -67,15 +67,15 @@ public class Request {
     @Nullable @Getter @Setter(PROTECTED)
     private Integer entitySize;
 
-    private Request(@Nonnull final Reader reader, @Nonnull final OutputStream outputStream, @Nonnull final String method, @Nonnull final String uri, @Nonnull final String version) {
+    private Request(@Nonnull final LimitedBufferedReader reader, @Nonnull final OutputStream outputStream, @Nonnull final String method, @Nonnull final String uri, @Nonnull final String version) {
         this(reader, outputStream, HttpMethod.decode(method), uri, HttpVersion.decode(version));
     }
 
-    private Request(@Nonnull final Reader reader, @Nonnull final OutputStream outputStream) {
+    private Request(@Nonnull final LimitedBufferedReader reader, @Nonnull final OutputStream outputStream) {
         this(reader, outputStream, HttpMethod.UNKNOWN, null, HttpVersion.UNKNOWN);
     }
 
-    private Request(@Nonnull final Reader reader,
+    private Request(@Nonnull final LimitedBufferedReader reader,
                     @Nonnull final OutputStream outputStream,
                     @Nonnull final HttpMethod method,
                     @Nullable final String uri,
@@ -89,37 +89,28 @@ public class Request {
         this.invalid = method == HttpMethod.UNKNOWN || uri == null || version == HttpVersion.UNKNOWN;
     }
 
-    static Request makeNew(@Nonnull final Reader reader, @Nonnull final OutputStream outputStream, @Nonnull final String method, @Nonnull final String uri, @Nonnull final String version) {
+    static Request makeNew(@Nonnull final LimitedBufferedReader reader, @Nonnull final OutputStream outputStream, @Nonnull final String method, @Nonnull final String uri, @Nonnull final String version) {
         return new Request(reader, outputStream, method, uri, version);
     }
 
-    void addHeader(@Nonnull final String name, @Nullable final String... values) {
-        final HttpHeader header = HttpHeader.getByName(name.trim().toLowerCase());
-        if (header != null && values != null) {
-            for (final String value : values) {
-                headers.put(header, value.trim());
-            }
-        }
+    boolean addHeader(@Nonnull final String line) {
+        return RequestUtil.addHeader(headers, line);
     }
 
     @Nullable
     public String getHeaderValue(@Nonnull final HttpHeader header) {
-        final Collection<String> values = headers.get(header);
-        if (values == null || values.isEmpty()) {
-            return null;
-        }
-        return values.iterator().next();
+        return RequestUtil.getHeaderValue(headers, header);
+    }
+
+    @Nullable
+    public String getHeaderAttribute(@Nonnull final HttpHeader header,
+                                     @Nonnull final HttpHeaderValueAttribute attr) {
+        return RequestUtil.getHeaderAttribute(headers, header, attr);
     }
 
     public boolean hasHeaderValue(@Nonnull final HttpHeader header,
                                   @Nonnull final HttpHeaderValue value) {
-        final Collection<String> values = headers.get(header);
-        for (final String item : values) {
-            if (value.getName().equals(item.toLowerCase())) {
-                return true;
-            }
-        }
-        return false;
+        return RequestUtil.hasHeaderValue(headers, header, value);
     }
 
     @Nullable
@@ -141,8 +132,12 @@ public class Request {
         final String[] paramsArr = params.split("&");
         for (final String param : paramsArr) {
             final String[] parts = param.split("=");
-            this.parameters.put(parts[0].trim(), parts.length > 1 ? decode(parts[1]).trim() : null);
+            addParameter(parts[0].trim(), parts.length > 1 ? decode(parts[1]).trim() : null);
         }
+    }
+
+    public void addParameter(@Nonnull final String name, @Nonnull final String value) {
+        this.parameters.put(name, value);
     }
 
     public boolean shouldWriteBody() {
@@ -173,4 +168,5 @@ public class Request {
     public MimeType getContentType() {
         return MimeType.getByName(getHeaderValue(HttpHeader.CONTENT_TYPE));
     }
+
 }

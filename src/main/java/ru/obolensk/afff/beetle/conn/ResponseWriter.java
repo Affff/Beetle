@@ -5,6 +5,7 @@ import ru.obolensk.afff.beetle.Version;
 import ru.obolensk.afff.beetle.log.Logger;
 import ru.obolensk.afff.beetle.log.Writer;
 import ru.obolensk.afff.beetle.request.*;
+import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
 import ru.obolensk.afff.beetle.util.DateUtil;
 
 import javax.annotation.Nonnull;
@@ -75,7 +76,8 @@ public class ResponseWriter {
     }
 
     public static void sendUnparseableRequestAnswer(@Nonnull final OutputStream out, @Nonnull final HttpCode code) {
-        final ResponseWriter writer = new ResponseWriter(new RequestBuilder(new StringReader(""), out,"UNKNOWN / HTTP/1.1").build());
+        final LimitedBufferedReader emptyReader = new LimitedBufferedReader(new StringReader(""), Integer.MAX_VALUE);
+        final ResponseWriter writer = new ResponseWriter(new RequestBuilder(emptyReader, out,"UNKNOWN / HTTP/1.1").build());
         writer.sendEmptyAnswer(code);
     }
 

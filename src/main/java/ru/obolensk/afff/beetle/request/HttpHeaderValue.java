@@ -9,7 +9,9 @@ import javax.annotation.Nonnull;
  */
 public enum HttpHeaderValue {
     CONNECTION_KEEP_ALIVE("keep-alive"),
-    CONNECTION_CLOSE("close");
+    CONNECTION_CLOSE("close"),
+    CONTENT_DISPOSITION_FORM_DATA("form-data")
+    ;
 
     @Nonnull @Getter
     private final String name;

@@ -14,7 +14,8 @@ public enum HttpHeader {
     CONTENT_TYPE("Content-Type"),
     CONTENT_LENGTH("Content-Length"),
     CONNECTION("Connection"),
-    ALLOW("Allow");
+    ALLOW("Allow"),
+    CONTENT_DISPOSITION("Content-Disposition");
 
     @Nonnull @Getter
     private final String name;

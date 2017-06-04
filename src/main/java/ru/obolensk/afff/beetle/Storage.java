@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static java.nio.file.Files.*;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static ru.obolensk.afff.beetle.request.HttpCode.*;
 import static ru.obolensk.afff.beetle.settings.Options.WELCOME_FILE_NAME;
@@ -64,7 +65,7 @@ public class Storage {
         if (file == null) {
             return HTTP_400; // wrong server path
         }
-        final boolean exists = Files.exists(file);
+        final boolean exists = exists(file);
         HttpCode responseCode = exists ? HTTP_200 : HTTP_201;
         final int size = req.getEntitySize() != null ? req.getEntitySize() : 0;
         if (size > 0) {
@@ -77,7 +78,8 @@ public class Storage {
                 final Writer writer = Files.newBufferedWriter(tempFile);
                 final int actualSize = copy(req.getReader(), writer, size);
                 if (actualSize == size) {
-                    Files.move(tempFile, file, REPLACE_EXISTING);
+                    //FIXME there is some problem with deleting old file - may be it's linked to access rights
+                    move(tempFile, file, REPLACE_EXISTING);
                 } else {
                     responseCode = HTTP_500;
                 }
@@ -85,9 +87,9 @@ public class Storage {
                 logger.error(e);
                 responseCode = HTTP_500;
             } finally {
-                if (tempFile != null && Files.exists(tempFile)) {
+                if (tempFile != null && exists(tempFile)) {
                     try {
-                        Files.delete(tempFile);
+                        delete(tempFile);
                     } catch (IOException e) {
                         logger.error(e);
                     }

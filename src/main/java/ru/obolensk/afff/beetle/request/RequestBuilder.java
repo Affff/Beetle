@@ -2,11 +2,11 @@ package ru.obolensk.afff.beetle.request;
 
 import com.google.common.primitives.Ints;
 import ru.obolensk.afff.beetle.log.Logger;
+import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.OutputStream;
-import java.io.Reader;
 
 /**
  * Created by Afff on 10.04.2017.
@@ -21,7 +21,7 @@ public class RequestBuilder {
     @Nonnull
     private final StringBuilder rawRequest = new StringBuilder();
 
-    public RequestBuilder(@Nonnull final Reader reader, @Nonnull final OutputStream outputStream, @Nonnull final String requestStr) {
+    public RequestBuilder(@Nonnull final LimitedBufferedReader reader, @Nonnull final OutputStream outputStream, @Nonnull final String requestStr) {
         final String[] components = requestStr.split("\\s");
         request = Request.makeNew(reader, outputStream, components[0], components[1], components[2]);
         rawRequest.append(requestStr).append("\r\n");
@@ -32,15 +32,7 @@ public class RequestBuilder {
             return false;
         }
         rawRequest.append(headerStr).append("\r\n");
-        if (headerStr.isEmpty()) {
-            return false;
-        }
-        final String[] headers = headerStr.split(":");
-        if (headers.length >= 1) {
-            request.addHeader(headers[0], headers[1].split(","));
-            return true;
-        }
-        return false;
+        return !headerStr.isEmpty() && request.addHeader(headerStr);
     }
     @Nonnull
     public Request build() {

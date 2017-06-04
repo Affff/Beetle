@@ -15,6 +15,7 @@ public enum MimeType {
     MESSAGE_HTTP("message/http", null),
     APPLICATION_X_WWW_FORM_URLENCODED("application/x-www-form-urlencoded", null),
     MULTIPART_FORM_DATA("multipart/form-data", null),
+    MULTIPART_MIXED("multipart/mixed", null),
     TEXT_PLAIN("text-plain"),
     UNKNOWN(null)
     ;

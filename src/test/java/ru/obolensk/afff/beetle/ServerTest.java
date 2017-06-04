@@ -194,7 +194,6 @@ public class ServerTest {
                 client.sendRequest(GET, "/", null, null);
                 fail();
             } catch (SocketException e) {
-                assertEquals("Connection has already closed!", e.getMessage());
             }
         }
     }
