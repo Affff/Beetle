@@ -1,14 +1,14 @@
-package ru.obolensk.afff.beetle.request;
-
-import lombok.Getter;
+package ru.obolensk.afff.beetle.protocol;
 
 import javax.annotation.Nonnull;
+
+import lombok.Getter;
 
 /**
  * Created by Afff on 10.04.2017.
  */
 public enum HttpVersion {
-    HTTP_1_0("HTTP/1.0"), HTTP_1_1("HTTP/1.1"), HTTP_2("HTTP/2"), UNKNOWN(("HTTP/1.1")); // HTTP 0.9 unsupported as deprecated
+    HTTP_1_1("HTTP/1.1"), HTTP_2("HTTP/2"), UNKNOWN(("HTTP/1.1")); // HTTP 1.0 and 0.9 are unsupported as deprecated
 
     @Getter
     private final String name;

@@ -1,7 +1,7 @@
 package ru.obolensk.afff.beetle.test;
 
-import ru.obolensk.afff.beetle.request.HttpHeader;
-import ru.obolensk.afff.beetle.request.HttpHeaderValue;
+import ru.obolensk.afff.beetle.protocol.HttpHeader;
+import ru.obolensk.afff.beetle.protocol.HttpHeaderValue;
 
 import javax.annotation.Nonnull;
 

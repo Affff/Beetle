@@ -1,9 +1,9 @@
 package ru.obolensk.afff.beetle.test;
 
-import ru.obolensk.afff.beetle.conn.MimeType;
-import ru.obolensk.afff.beetle.request.HttpCode;
-import ru.obolensk.afff.beetle.request.HttpMethod;
-import ru.obolensk.afff.beetle.request.HttpVersion;
+import ru.obolensk.afff.beetle.protocol.MimeType;
+import ru.obolensk.afff.beetle.protocol.HttpCode;
+import ru.obolensk.afff.beetle.protocol.HttpMethod;
+import ru.obolensk.afff.beetle.protocol.HttpVersion;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -13,10 +13,10 @@ import java.net.SocketException;
 import java.util.Collections;
 import java.util.List;
 
-import static ru.obolensk.afff.beetle.request.HttpHeader.*;
-import static ru.obolensk.afff.beetle.request.HttpHeaderValue.CONNECTION_KEEP_ALIVE;
-import static ru.obolensk.afff.beetle.request.HttpMethod.HEAD;
-import static ru.obolensk.afff.beetle.request.HttpVersion.HTTP_1_1;
+import static ru.obolensk.afff.beetle.protocol.HttpHeader.*;
+import static ru.obolensk.afff.beetle.protocol.HttpHeaderValue.CONNECTION_KEEP_ALIVE;
+import static ru.obolensk.afff.beetle.protocol.HttpMethod.HEAD;
+import static ru.obolensk.afff.beetle.protocol.HttpVersion.HTTP_1_1;
 
 /**
  * Created by Afff on 21.04.2017.
@@ -44,19 +44,23 @@ public class HttpTestClient implements Closeable {
                                     @Nonnull final String path,
                                     @Nullable final String content,
                                     @Nullable final MimeType contentType) throws IOException {
-        return sendRequest(method, path, Collections.emptyList(), content, contentType);
+        return sendRequest(method, path, Collections.emptyList(), content, contentType, null);
     }
 
     public ServerAnswer sendRequest(@Nonnull final HttpMethod method,
                                     @Nonnull final String path,
                                     @Nullable final List<HeaderValue> headers,
                                     @Nullable final String content,
-                                    @Nullable final MimeType contentType) throws IOException {
+                                    @Nullable final MimeType contentType,
+                                    @Nullable final String contentTypeAttrs) throws IOException {
         System.out.println("[TEST] wrote request " + method.name() + " " + path + " " + version.getName());
         writer.write(method.name() + " " + path + " " + version.getName());
         writer.newLine();
         if (contentType != null) {
             writer.write(CONTENT_TYPE.getName() + ": " + contentType.getName());
+            if (contentTypeAttrs != null) {
+                writer.write("; " + contentTypeAttrs);
+            }
             writer.newLine();
         }
         char[] contentBytes = null;

@@ -1,8 +1,9 @@
-package ru.obolensk.afff.beetle.request;
-
-import lombok.Getter;
+package ru.obolensk.afff.beetle.protocol;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import lombok.Getter;
 
 /**
  * Created by Afff on 08.06.2016.
@@ -60,5 +61,17 @@ public enum HttpCode {
     HttpCode(int code, String name) {
         this.code = code;
         this.descr = name;
+    }
+
+    @Nullable
+    public static HttpCode getByStatusCode(@Nonnull final Number status) {
+        if (status == null) {
+            return HTTP_500;
+        }
+        final HttpCode code = HttpCode.valueOf("HTTP_" + status.intValue());
+        if (code == null) {
+            return HTTP_500;
+        }
+        return code;
     }
 }

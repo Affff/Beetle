@@ -1,10 +1,19 @@
-package ru.obolensk.afff.beetle;
+package ru.obolensk.afff.beetle.client;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Paths;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.apache.log4j.Level;
+import ru.obolensk.afff.beetle.core.BeetleServer;
+import ru.obolensk.afff.beetle.servlet.ServletContainer;
+import ru.obolensk.afff.beetle.settings.Options;
+import ru.obolensk.afff.beetle.settings.ServerConfig;
+import ru.obolensk.afff.beetle.util.Version;
 
 /**
  * Created by Afff on 10.04.2017.
@@ -14,7 +23,15 @@ public class ConsoleClient {
     private static BeetleServer server;
 
     public static void main(@Nonnull String[] args) throws IOException {
-        server = new BeetleServer(4080);
+        ServerConfig config = new ServerConfig();
+        if (args.length != 0) {
+            config.set(Options.ROOT_DIR, Paths.get(args[0]));
+        }
+        config.set(Options.SERVLETS_ENABLED, true);
+        config.set(Options.SERVLET_REFRESH_FILES_SERVICE_ENABLED, true);
+        config.set(Options.SERVLET_REFRESH_FILES_SERVICE_INTERVAL, 1000);
+        org.apache.log4j.Logger.getLogger(ServletContainer.class).setLevel(Level.ERROR);
+        server = new BeetleServer(4080, config);
         printMenu();
     }
 

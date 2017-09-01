@@ -1,30 +1,39 @@
 package ru.obolensk.afff.beetle.request;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import ru.obolensk.afff.beetle.conn.MimeType;
 import ru.obolensk.afff.beetle.log.LoggablePrintWriter;
 import ru.obolensk.afff.beetle.log.Logger;
 import ru.obolensk.afff.beetle.log.Writer;
+import ru.obolensk.afff.beetle.protocol.HttpHeader;
+import ru.obolensk.afff.beetle.protocol.HttpHeaderValue;
+import ru.obolensk.afff.beetle.protocol.HttpHeaderValueAttribute;
+import ru.obolensk.afff.beetle.protocol.HttpMethod;
+import ru.obolensk.afff.beetle.protocol.HttpVersion;
+import ru.obolensk.afff.beetle.protocol.MimeType;
 import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
 import ru.obolensk.afff.beetle.util.RequestUtil;
 import ru.obolensk.afff.beetle.util.UriUtil;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-
 import static lombok.AccessLevel.PROTECTED;
-import static ru.obolensk.afff.beetle.Storage.ROOT;
-import static ru.obolensk.afff.beetle.request.HttpMethod.GET;
-import static ru.obolensk.afff.beetle.request.HttpMethod.HEAD;
+import static ru.obolensk.afff.beetle.core.Storage.ROOT;
+import static ru.obolensk.afff.beetle.protocol.HttpMethod.GET;
+import static ru.obolensk.afff.beetle.protocol.HttpMethod.HEAD;
 import static ru.obolensk.afff.beetle.util.UriUtil.decode;
 
 /**
@@ -47,6 +56,9 @@ public class Request {
     private String rawData;
 
     @Nonnull @Getter
+    private final InetAddress ip;
+
+    @Nonnull @Getter
     private final HttpMethod method;
 
     @Nullable @Getter
@@ -61,36 +73,42 @@ public class Request {
     @Nonnull @Getter
     private final Multimap<HttpHeader, AttributedValue> headers = LinkedListMultimap.create();
 
+    @Nonnull @Getter
+    private final List<MultipartData> multipartData = new ArrayList<>();
+
     @Getter
     private final boolean invalid;
 
     @Nullable @Getter @Setter(PROTECTED)
     private Integer entitySize;
 
-    private Request(@Nonnull final LimitedBufferedReader reader, @Nonnull final OutputStream outputStream, @Nonnull final String method, @Nonnull final String uri, @Nonnull final String version) {
-        this(reader, outputStream, HttpMethod.decode(method), uri, HttpVersion.decode(version));
-    }
-
-    private Request(@Nonnull final LimitedBufferedReader reader, @Nonnull final OutputStream outputStream) {
-        this(reader, outputStream, HttpMethod.UNKNOWN, null, HttpVersion.UNKNOWN);
+    private Request(@Nonnull final LimitedBufferedReader reader,
+                    @Nonnull final OutputStream outputStream,
+                    @Nonnull final InetAddress ip,
+                    @Nonnull final String method,
+                    @Nonnull final String uri,
+                    @Nonnull final String version) {
+        this(reader, outputStream, ip, HttpMethod.decode(method), uri, HttpVersion.decode(version));
     }
 
     private Request(@Nonnull final LimitedBufferedReader reader,
                     @Nonnull final OutputStream outputStream,
+                    @Nonnull final InetAddress ip,
                     @Nonnull final HttpMethod method,
                     @Nullable final String uri,
                     @Nonnull final HttpVersion version) {
         this.reader = reader;
         this.outputStream = outputStream;
         this.writer = new LoggablePrintWriter(outputStream, logger);
+        this.ip = ip;
         this.method = method;
         this.uri = readUriAndParams(uri);
         this.version = version;
         this.invalid = method == HttpMethod.UNKNOWN || uri == null || version == HttpVersion.UNKNOWN;
     }
 
-    static Request makeNew(@Nonnull final LimitedBufferedReader reader, @Nonnull final OutputStream outputStream, @Nonnull final String method, @Nonnull final String uri, @Nonnull final String version) {
-        return new Request(reader, outputStream, method, uri, version);
+    static Request makeNew(@Nonnull final LimitedBufferedReader reader, @Nonnull final OutputStream outputStream, @Nonnull final InetAddress ip, @Nonnull final String method, @Nonnull final String uri, @Nonnull final String version) {
+        return new Request(reader, outputStream, ip, method, uri, version);
     }
 
     boolean addHeader(@Nonnull final String line) {
@@ -162,6 +180,12 @@ public class Request {
     public String getLocalPath() {
         final String path = uri != null ? uri.getPath() : "";
         return path.isEmpty() ? ROOT.toString() : path;
+    }
+
+    @Nonnull
+    public String getPathForFile(@Nonnull final String fileName) {
+        final String path = uri != null ? uri.resolve(fileName).getPath() : "";
+        return path.isEmpty() ? ROOT.resolve(fileName).toString() : path;
     }
 
     @Nonnull

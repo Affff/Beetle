@@ -1,16 +1,5 @@
 package ru.obolensk.afff.beetle;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import ru.obolensk.afff.beetle.settings.ServerConfig;
-import ru.obolensk.afff.beetle.test.HeaderValue;
-import ru.obolensk.afff.beetle.test.HttpTestClient;
-import ru.obolensk.afff.beetle.test.ServerAnswer;
-import ru.obolensk.afff.beetle.test.TestProxy;
-
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.URISyntaxException;
@@ -18,19 +7,45 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
+import javax.annotation.Nonnull;
+
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import ru.obolensk.afff.beetle.core.BeetleServer;
+import ru.obolensk.afff.beetle.settings.ServerConfig;
+import ru.obolensk.afff.beetle.test.HeaderValue;
+import ru.obolensk.afff.beetle.test.HttpTestClient;
+import ru.obolensk.afff.beetle.test.ServerAnswer;
+import ru.obolensk.afff.beetle.test.TestProxy;
+
 import static java.net.URLEncoder.encode;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readAllLines;
-import static org.junit.Assert.*;
-import static ru.obolensk.afff.beetle.conn.MimeType.APPLICATION_X_WWW_FORM_URLENCODED;
-import static ru.obolensk.afff.beetle.conn.MimeType.TEXT_PLAIN;
-import static ru.obolensk.afff.beetle.request.HttpCode.*;
-import static ru.obolensk.afff.beetle.request.HttpHeader.CONNECTION;
-import static ru.obolensk.afff.beetle.request.HttpHeaderValue.CONNECTION_CLOSE;
-import static ru.obolensk.afff.beetle.request.HttpHeaderValue.CONNECTION_KEEP_ALIVE;
-import static ru.obolensk.afff.beetle.request.HttpMethod.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import static ru.obolensk.afff.beetle.protocol.HttpCode.HTTP_200;
+import static ru.obolensk.afff.beetle.protocol.HttpCode.HTTP_201;
+import static ru.obolensk.afff.beetle.protocol.HttpCode.HTTP_400;
+import static ru.obolensk.afff.beetle.protocol.HttpCode.HTTP_404;
+import static ru.obolensk.afff.beetle.protocol.HttpCode.HTTP_414;
+import static ru.obolensk.afff.beetle.protocol.HttpCode.HTTP_415;
+import static ru.obolensk.afff.beetle.protocol.HttpHeader.CONNECTION;
+import static ru.obolensk.afff.beetle.protocol.HttpHeaderValue.CONNECTION_CLOSE;
+import static ru.obolensk.afff.beetle.protocol.HttpHeaderValue.CONNECTION_KEEP_ALIVE;
+import static ru.obolensk.afff.beetle.protocol.HttpMethod.DELETE;
+import static ru.obolensk.afff.beetle.protocol.HttpMethod.GET;
+import static ru.obolensk.afff.beetle.protocol.HttpMethod.HEAD;
+import static ru.obolensk.afff.beetle.protocol.HttpMethod.POST;
+import static ru.obolensk.afff.beetle.protocol.HttpMethod.PUT;
+import static ru.obolensk.afff.beetle.protocol.MimeType.APPLICATION_X_WWW_FORM_URLENCODED;
+import static ru.obolensk.afff.beetle.protocol.MimeType.MULTIPART_FORM_DATA;
+import static ru.obolensk.afff.beetle.protocol.MimeType.TEXT_PLAIN;
 import static ru.obolensk.afff.beetle.settings.Options.REQUEST_MAX_LINE_LENGTH;
-import static ru.obolensk.afff.beetle.settings.Options.WWW_ROOT_DIR;
+import static ru.obolensk.afff.beetle.settings.Options.ROOT_DIR;
+import static ru.obolensk.afff.beetle.settings.Options.SERVLETS_ENABLED;
 
 /**
  * Created by Afff on 21.04.2017.
@@ -48,11 +63,17 @@ public class ServerTest {
     @BeforeClass
     public static void init() throws IOException, URISyntaxException {
         config = new ServerConfig();
-        config.set(WWW_ROOT_DIR, Paths.get(ServerTest.class.getResource("/www").toURI()));
+        config.set(ROOT_DIR, getTestResourcesDir());
+        config.set(SERVLETS_ENABLED, true);
         server = new BeetleServer(SERVER_PORT, config);
         if (TEST_PROXY_ENABLED) {
             proxy = new TestProxy(PROXY_PORT, SERVER_PORT);
         }
+    }
+
+    private static Path getTestResourcesDir() throws URISyntaxException {
+        final ClassLoader classLoader = ServerTest.class.getClassLoader();
+        return Paths.get(classLoader.getResource("index.html").toURI()).getParent();
     }
 
     private static int serverPort() {
@@ -94,7 +115,6 @@ public class ServerTest {
             final ServerAnswer result = client.sendRequest(GET, "/test/test.html?test1=test1&test2=" + encode("другой язык", UTF_8.name()), null, null);
             assertEquals(HTTP_200, result.getCode());
             assertEquals(readFileAsString("/www/test/test.html"), result.getReceivedContent());
-            // TODO check input parameters values with servlet
         }
     }
 
@@ -123,6 +143,38 @@ public class ServerTest {
             final ServerAnswer result = client.sendRequest(POST, "/", params, APPLICATION_X_WWW_FORM_URLENCODED);
             assertEquals(HTTP_200, result.getCode());
             assertEquals(readFileAsString("/www/index.html"), result.getReceivedContent());
+        }
+    }
+
+    @Test
+    public void parametersPostMultipartTest() throws IOException, URISyntaxException {
+        try(final HttpTestClient client = new HttpTestClient(serverPort())) {
+            final String boundary = "RaNdOmDeLiMiTeR";
+            final String boundaryAttr = "boundary=" + boundary;
+            final String params = "--" + boundary + "\r\n"
+                    + "Content-Disposition: form-data; name=\"test_param\"\r\n"
+                    + "\r\n"
+                    + "test_value\r\n"
+                    + "--" + boundary + "--\r\n";
+            final ServerAnswer result = client.sendRequest(POST, "/", null, params, MULTIPART_FORM_DATA, boundaryAttr);
+            assertEquals(HTTP_200, result.getCode());
+            assertEquals(readFileAsString("/www/index.html"), result.getReceivedContent());
+        }
+    }
+
+    //TODO add test for POST multipart file storage
+
+    @Test
+    public void parametersPostMultipartBrokenTest() throws IOException, URISyntaxException {
+        try(final HttpTestClient client = new HttpTestClient(serverPort())) {
+            final String boundary = "RaNdOmDeLiMiTeR";
+            final String boundaryAttr = "boundary=" + boundary;
+            final String params = "--" + boundary + "\r\n"
+                    + "Content-Disposition: form-data; name=\"test_param\"\r\n"
+                    + "\r\n"
+                    + "test_value\r\n";
+            final ServerAnswer result = client.sendRequest(POST, "/", null, params, MULTIPART_FORM_DATA, boundaryAttr);
+            assertEquals(HTTP_400, result.getCode());
         }
     }
 
@@ -187,7 +239,7 @@ public class ServerTest {
                     Arrays.asList(
                             new HeaderValue(CONNECTION, CONNECTION_CLOSE),
                             new HeaderValue(CONNECTION, CONNECTION_KEEP_ALIVE)
-                    ),null, null);
+                    ),null, null, null);
             assertEquals(HTTP_200, result.getCode());
             assertNotNull(result.getReceivedContent());
             try {
@@ -198,6 +250,14 @@ public class ServerTest {
         }
     }
 
+    @Test
+    public void servletTest() throws IOException, URISyntaxException, InterruptedException {
+        try(final HttpTestClient client = new HttpTestClient(serverPort())) {
+            final ServerAnswer result = client.sendRequest(POST, "/serv/echo", "data=test", APPLICATION_X_WWW_FORM_URLENCODED);
+            assertEquals(HTTP_200, result.getCode());
+            assertEquals("test", result.getReceivedContent());
+        }
+    }
 
     private String readFileAsString(@Nonnull final String fileName) throws URISyntaxException, IOException {
         final StringBuilder builder = new StringBuilder();

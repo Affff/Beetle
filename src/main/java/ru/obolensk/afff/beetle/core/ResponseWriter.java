@@ -1,24 +1,36 @@
-package ru.obolensk.afff.beetle.conn;
+package ru.obolensk.afff.beetle.core;
 
-import com.google.common.io.Files;
-import ru.obolensk.afff.beetle.Version;
-import ru.obolensk.afff.beetle.log.Logger;
-import ru.obolensk.afff.beetle.log.Writer;
-import ru.obolensk.afff.beetle.request.*;
-import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
-import ru.obolensk.afff.beetle.util.DateUtil;
-
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringReader;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.StringJoiner;
 
-import static ru.obolensk.afff.beetle.conn.MimeType.TEXT_HTML;
-import static ru.obolensk.afff.beetle.request.HttpHeader.*;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import com.google.common.io.Files;
+import ru.obolensk.afff.beetle.util.Version;
+import ru.obolensk.afff.beetle.protocol.MimeType;
+import ru.obolensk.afff.beetle.log.Logger;
+import ru.obolensk.afff.beetle.log.Writer;
+import ru.obolensk.afff.beetle.protocol.HttpCode;
+import ru.obolensk.afff.beetle.protocol.HttpHeader;
+import ru.obolensk.afff.beetle.protocol.HttpMethod;
+import ru.obolensk.afff.beetle.request.Request;
+import ru.obolensk.afff.beetle.request.RequestBuilder;
+import ru.obolensk.afff.beetle.servlet.ServletResponse;
+import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
+import ru.obolensk.afff.beetle.util.DateUtil;
+
+import static ru.obolensk.afff.beetle.protocol.MimeType.TEXT_HTML;
+import static ru.obolensk.afff.beetle.protocol.HttpHeader.CONTENT_LENGTH;
+import static ru.obolensk.afff.beetle.protocol.HttpHeader.CONTENT_TYPE;
+import static ru.obolensk.afff.beetle.protocol.HttpHeader.DATE;
+import static ru.obolensk.afff.beetle.protocol.HttpHeader.SERVER;
 
 /**
  * Created by Afff on 11.04.2017.
@@ -33,9 +45,14 @@ public class ResponseWriter {
         this.request = request;
     }
 
-    public void sendAnswer(@Nonnull final HttpCode code, @Nonnull final MimeType mimeType, @Nonnull final String content) {
-        final Writer writer = writeHeader(code);
-        final int length = content.getBytes(StandardCharsets.UTF_8).length;
+	public void sendAnswer(@Nonnull final HttpCode code, @Nonnull final MimeType mimeType, @Nonnull final String content) {
+		sendAnswer(code, mimeType, content, null);
+	}
+
+    public void sendAnswer(@Nonnull final HttpCode code, @Nonnull final MimeType mimeType,
+                           @Nullable final String content, @Nullable String errorDescr) {
+        final Writer writer = writeHeader(code, errorDescr);
+        final int length = content != null ? content.getBytes(StandardCharsets.UTF_8).length : 0;
         if (length != 0) {
             writer.println(CONTENT_TYPE.getName() + ":" + mimeType.getName() + charsetAttr(mimeType));
         }
@@ -47,6 +64,10 @@ public class ResponseWriter {
         writer.flush();
     }
 
+    public void sendServletResponse(ServletResponse response) {
+        sendAnswer(response.getCode(), MimeType.TEXT_HTML, response.getData(), response.getErrorMessage());
+    }
+
     @Nonnull
     private String charsetAttr(@Nonnull final MimeType mimeType) {
         if (mimeType.getCharset() == null) {
@@ -56,7 +77,7 @@ public class ResponseWriter {
     }
 
     public void sendOptions(List<HttpMethod> options) {
-        final Writer writer = writeHeader(HttpCode.HTTP_200);
+        final Writer writer = writeHeader(HttpCode.HTTP_200, null);
         final StringJoiner joiner = new StringJoiner("");
         options.forEach(option -> joiner.add(option.name()));
         writer.println(HttpHeader.ALLOW.getName() + ":" + joiner.toString());
@@ -75,9 +96,9 @@ public class ResponseWriter {
         sendAnswer(code, TEXT_HTML, "");
     }
 
-    public static void sendUnparseableRequestAnswer(@Nonnull final OutputStream out, @Nonnull final HttpCode code) {
+    public static void sendUnparseableRequestAnswer(InetAddress ip, @Nonnull final OutputStream out, @Nonnull final HttpCode code) {
         final LimitedBufferedReader emptyReader = new LimitedBufferedReader(new StringReader(""), Integer.MAX_VALUE);
-        final ResponseWriter writer = new ResponseWriter(new RequestBuilder(emptyReader, out,"UNKNOWN / HTTP/1.1").build());
+        final ResponseWriter writer = new ResponseWriter(new RequestBuilder(ip, emptyReader, out,"UNKNOWN / HTTP/1.1").build());
         writer.sendEmptyAnswer(code);
     }
 
@@ -101,9 +122,9 @@ public class ResponseWriter {
         sendAnswer(code, TEXT_HTML, answer);
     }
 
-    private Writer writeHeader(@Nonnull final HttpCode code) {
+    private Writer writeHeader(@Nonnull final HttpCode code, @Nullable String errorDescr) {
         final Writer writer = request.getWriter();
-        writer.println(request.getVersion().getName() + " " + code.getCode() + " " + code.getDescr());
+        writer.println(request.getVersion().getName() + " " + code.getCode() + " " + (errorDescr == null ? code.getDescr() : errorDescr));
         writer.println(DATE.getName() + ": " + DateUtil.getHttpTime());
         writer.println(SERVER.getName() + ": " + Version.nameAndVersion());
         return writer;

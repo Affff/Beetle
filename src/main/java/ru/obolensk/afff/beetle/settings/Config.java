@@ -7,4 +7,5 @@ import javax.annotation.Nonnull;
  */
 public interface Config {
     <T> T get(@Nonnull final Options options);
+    boolean is(@Nonnull final Options options);
 }

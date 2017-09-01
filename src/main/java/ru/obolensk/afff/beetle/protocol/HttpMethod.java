@@ -1,4 +1,4 @@
-package ru.obolensk.afff.beetle.request;
+package ru.obolensk.afff.beetle.protocol;
 
 import javax.annotation.Nonnull;
 

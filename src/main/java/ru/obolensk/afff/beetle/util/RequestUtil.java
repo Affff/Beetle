@@ -1,21 +1,22 @@
 package ru.obolensk.afff.beetle.util;
 
 import com.google.common.collect.Multimap;
+import ru.obolensk.afff.beetle.protocol.MimeType;
 import ru.obolensk.afff.beetle.request.AttributedValue;
-import ru.obolensk.afff.beetle.request.HttpHeader;
-import ru.obolensk.afff.beetle.request.HttpHeaderValue;
-import ru.obolensk.afff.beetle.request.HttpHeaderValueAttribute;
+import ru.obolensk.afff.beetle.protocol.HttpHeader;
+import ru.obolensk.afff.beetle.protocol.HttpHeaderValue;
+import ru.obolensk.afff.beetle.protocol.HttpHeaderValueAttribute;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 
+import static ru.obolensk.afff.beetle.protocol.HttpHeader.CONTENT_TYPE;
+
 /**
  * Created by Afff on 01.06.2017.
  */
 public class RequestUtil {
-
-    //TODO create here methods to compare header values and mime types, refactor the code to use them
 
     /**
      * Method parses line to request parameter. If parameter has no value, it will be ignored.
@@ -70,5 +71,18 @@ public class RequestUtil {
             }
         }
         return false;
+    }
+
+    public static boolean headerEquals(@Nonnull final Multimap<HttpHeader, AttributedValue> headers,
+                                       @Nonnull final HttpHeader header,
+                                       @Nonnull final HttpHeaderValue expected) {
+        final String value = getHeaderValue(headers, header);
+        return value != null && expected.getName().equals(value.toLowerCase());
+    }
+
+    public static boolean contentTypeEquals(@Nonnull final Multimap<HttpHeader, AttributedValue> headers,
+                                            @Nonnull final MimeType expected) {
+        final String value = getHeaderValue(headers, CONTENT_TYPE);
+        return value != null && expected.getName().equals(value.toLowerCase());
     }
 }

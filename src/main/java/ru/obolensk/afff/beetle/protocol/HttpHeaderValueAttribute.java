@@ -1,8 +1,8 @@
-package ru.obolensk.afff.beetle.request;
-
-import lombok.Getter;
+package ru.obolensk.afff.beetle.protocol;
 
 import javax.annotation.Nonnull;
+
+import lombok.Getter;
 
 /**
  * Created by Afff on 25.05.2017.
@@ -10,6 +10,7 @@ import javax.annotation.Nonnull;
 public enum HttpHeaderValueAttribute {
     BOUNDARY("boundary"),
     NAME("name"),
+    FILENAME("filename")
     ;
 
     @Nonnull

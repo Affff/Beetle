@@ -26,7 +26,7 @@ public class AttributedValue {
         this.value = parts[0].trim();
         if (parts.length > 1) {
             for (int i = 1; i < parts.length; i++) {
-                final String[] keyValuePair = value.split("=");
+                final String[] keyValuePair = parts[i].split("=");
                 attributes.put(keyValuePair[0].trim(),
                         keyValuePair.length != 1 ? keyValuePair[1].trim() : null);
             }

@@ -1,9 +1,11 @@
 package ru.obolensk.afff.beetle.settings;
 
-import lombok.Getter;
+import java.nio.file.Paths;
 
 import javax.annotation.Nonnull;
-import java.nio.file.Paths;
+
+import lombok.Getter;
+import org.apache.log4j.Level;
 
 /**
  * Created by Afff on 20.04.2017.
@@ -12,7 +14,14 @@ import java.nio.file.Paths;
 public enum Options {
 
     LOG_TO_CONSOLE(true),
-    WWW_ROOT_DIR(Paths.get("c:/www")),
+    LOG_LEVEL(Level.INFO),
+    ROOT_DIR(Paths.get("c:/beetle")),
+    WWW_DIR(Paths.get("www")),
+    TEMP_DIR(Paths.get("temp")),
+    SERVLETS_ENABLED(false),
+    SERVLET_DIR(Paths.get("srv")),
+    SERVLET_REFRESH_FILES_SERVICE_ENABLED(false),
+    SERVLET_REFRESH_FILES_SERVICE_INTERVAL(60000),
     WELCOME_FILE_NAME("index.html"),
     SERVER_THREAD_COUNT(5),
     REQUEST_MAX_LINE_LENGTH(8192)

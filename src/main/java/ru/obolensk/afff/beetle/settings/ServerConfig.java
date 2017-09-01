@@ -34,4 +34,9 @@ public class ServerConfig implements Config {
     public <T> T get(@Nonnull final Options options) {
         return (T) settings.get(options);
     }
+
+    @Override
+    public boolean is(@Nonnull Options options) {
+        return get(options);
+    }
 }

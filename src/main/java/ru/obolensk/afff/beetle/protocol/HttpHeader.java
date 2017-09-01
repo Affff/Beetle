@@ -1,9 +1,9 @@
-package ru.obolensk.afff.beetle.request;
-
-import lombok.Getter;
+package ru.obolensk.afff.beetle.protocol;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import lombok.Getter;
 
 /**
  * Created by Afff on 10.04.2017.

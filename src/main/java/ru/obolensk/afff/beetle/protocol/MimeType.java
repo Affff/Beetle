@@ -1,11 +1,12 @@
-package ru.obolensk.afff.beetle.conn;
+package ru.obolensk.afff.beetle.protocol;
 
-import lombok.Getter;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+
+import lombok.Getter;
 
 /**
  * Created by Afff on 11.04.2017.

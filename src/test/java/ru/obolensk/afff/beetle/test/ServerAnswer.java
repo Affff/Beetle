@@ -2,7 +2,7 @@ package ru.obolensk.afff.beetle.test;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import ru.obolensk.afff.beetle.request.HttpCode;
+import ru.obolensk.afff.beetle.protocol.HttpCode;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

@@ -1,12 +1,15 @@
 package ru.obolensk.afff.beetle.request;
 
-import com.google.common.primitives.Ints;
-import ru.obolensk.afff.beetle.log.Logger;
-import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
+import java.io.OutputStream;
+import java.net.InetAddress;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.OutputStream;
+
+import com.google.common.primitives.Ints;
+import ru.obolensk.afff.beetle.log.Logger;
+import ru.obolensk.afff.beetle.protocol.HttpHeader;
+import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
 
 /**
  * Created by Afff on 10.04.2017.
@@ -21,9 +24,9 @@ public class RequestBuilder {
     @Nonnull
     private final StringBuilder rawRequest = new StringBuilder();
 
-    public RequestBuilder(@Nonnull final LimitedBufferedReader reader, @Nonnull final OutputStream outputStream, @Nonnull final String requestStr) {
+    public RequestBuilder(@Nonnull final InetAddress ip, @Nonnull final LimitedBufferedReader reader, @Nonnull final OutputStream outputStream, @Nonnull final String requestStr) {
         final String[] components = requestStr.split("\\s");
-        request = Request.makeNew(reader, outputStream, components[0], components[1], components[2]);
+        request = Request.makeNew(reader, outputStream, ip, components[0], components[1], components[2]);
         rawRequest.append(requestStr).append("\r\n");
     }
 
