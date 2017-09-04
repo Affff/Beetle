@@ -137,7 +137,7 @@ public class ClientConnection {
             final Path file = storage.getFilePath(req.getLocalPath());
             if (!storage.execute(req, file, writer)) {
                 if (!req.getMultipartData().isEmpty()) {
-                    req.getMultipartData().forEach(data -> storage.putMultipartFile(data));
+                    req.getMultipartData().forEach(storage::putMultipartFile);
                 }
                 if (!exists(file)) {
                     writer.send404();

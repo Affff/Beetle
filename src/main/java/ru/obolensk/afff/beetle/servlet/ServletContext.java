@@ -41,7 +41,7 @@ public class ServletContext {
 		contentType = req.getContentType().getName();
 		params = new HashMap<>(req.getParameters());
 		parts = req.getMultipartData().stream()
-				.collect(toMap(data -> data.getFileName(), data -> data));
+				.collect(toMap(MultipartData::getFileName, data -> data));
 	}
 
 	public String getParam(@Nonnull final String paramName) {

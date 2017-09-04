@@ -19,6 +19,7 @@ import ru.obolensk.afff.beetle.servlet.ServletResponse;
 import ru.obolensk.afff.beetle.settings.Config;
 import ru.obolensk.afff.beetle.settings.Options;
 
+import static java.nio.file.Files.createDirectories;
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.exists;
 import static java.nio.file.Files.move;
@@ -54,9 +55,18 @@ public class Storage {
     public Storage(@Nonnull final Config config) throws IOException {
         this.config = config;
         this.servletContainer = new ServletContainer(this);
+        checkAndCreateDirIfNeeded(getWwwDir());
+        checkAndCreateDirIfNeeded(getServletDir());
+        checkAndCreateDirIfNeeded(getTempDir());
     }
 
-	@Nonnull
+    private void checkAndCreateDirIfNeeded(@Nonnull final Path dir) throws IOException {
+        if (!exists(dir)) {
+            createDirectories(dir);
+        }
+    }
+
+    @Nonnull
     public Path getRootDir() {
         return config.get(ROOT_DIR);
     }
@@ -121,7 +131,7 @@ public class Storage {
             Path tempFile = null;
             try {
                 if (!exists) {
-                    Files.createDirectories(file.getParent());
+                    createDirectories(file.getParent());
                 }
                 tempFile = Files.createTempFile(file.getFileName().toString(), "_temp");
                 final Writer writer = Files.newBufferedWriter(tempFile);
@@ -160,10 +170,11 @@ public class Storage {
     }
 
 	public HttpCode putMultipartFile(MultipartData data) {
-		final boolean exists = exists(data.getFilePath());
+		final boolean exists = exists(data.getTargetPath());
 		HttpCode responseCode = exists ? HTTP_200 : HTTP_201;
 		try {
-			Files.move(data.getContentFile(), data.getFilePath(), REPLACE_EXISTING);
+            Files.createDirectories(data.getTargetPath().getParent());
+			Files.move(data.getContentFile(), data.getTargetPath(), REPLACE_EXISTING);
 		} catch (IOException e) {
 			logger.error(e);
 			responseCode = HTTP_500;

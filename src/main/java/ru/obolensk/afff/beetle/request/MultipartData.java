@@ -15,14 +15,14 @@ public class MultipartData {
 	private final String fileName;
 
 	@Getter
-	private final Path filePath;
+	private final Path targetPath;
 
 	@Getter
 	private final Path contentFile;
 
-	public MultipartData(String fileName, Path filePath, String content, Path tempDir) throws IOException {
+	public MultipartData(String fileName, Path targetPath, String content, Path tempDir) throws IOException {
 		this.fileName = fileName;
-		this.filePath = filePath;
+		this.targetPath = targetPath;
 		this.contentFile = Files.createTempFile(tempDir, null, null);
 		Files.write(contentFile, content.getBytes());
 	}

@@ -15,12 +15,14 @@ import ru.obolensk.afff.beetle.protocol.HttpHeaderValueAttribute;
 import ru.obolensk.afff.beetle.util.RequestUtil;
 
 import static ru.obolensk.afff.beetle.protocol.HttpHeader.CONTENT_DISPOSITION;
+import static ru.obolensk.afff.beetle.protocol.HttpHeader.CONTENT_TRANSFER_ENCODING;
 import static ru.obolensk.afff.beetle.protocol.HttpHeader.CONTENT_TYPE;
 import static ru.obolensk.afff.beetle.protocol.HttpHeaderValue.CONTENT_DISPOSITION_FILE;
 import static ru.obolensk.afff.beetle.protocol.HttpHeaderValue.CONTENT_DISPOSITION_FORM_DATA;
 import static ru.obolensk.afff.beetle.protocol.HttpHeaderValueAttribute.FILENAME;
 import static ru.obolensk.afff.beetle.protocol.HttpHeaderValueAttribute.NAME;
 import static ru.obolensk.afff.beetle.protocol.MimeType.MULTIPART_MIXED;
+import static ru.obolensk.afff.beetle.request.ContentDecoder.decode;
 import static ru.obolensk.afff.beetle.request.MultipartDataProcessor.State.BOUNDARY;
 import static ru.obolensk.afff.beetle.request.MultipartDataProcessor.State.DATA;
 import static ru.obolensk.afff.beetle.request.MultipartDataProcessor.State.HEAD;
@@ -86,10 +88,11 @@ public class MultipartDataProcessor {
                     }
                 } else if (headerEquals(headers, CONTENT_DISPOSITION, CONTENT_DISPOSITION_FILE)) {
                     final String filename = RequestUtil.getHeaderAttribute(headers, CONTENT_DISPOSITION, FILENAME);
-                    //TODO buffer -> support different file transfer encodings
-                    if (!storage.readMultipartFileToRequest(request, filename, buffer.toString())) {
+                    final String transferEncoding = RequestUtil.getHeaderValue(headers, CONTENT_TRANSFER_ENCODING);
+                    final String content = decode(buffer.toString(), transferEncoding);
+                    if (!storage.readMultipartFileToRequest(request, filename, content)) {
                         logger.warn("File {} can't be stored for request with URI {}", filename, request.getUri());
-                    };
+                    }
                 }
                 buffer.setLength(0);
             }

@@ -3,12 +3,16 @@ package ru.obolensk.afff.beetle;
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
 import javax.annotation.Nonnull;
 
+import org.apache.commons.codec.EncoderException;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.net.QuotedPrintableCodec;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -162,7 +166,58 @@ public class ServerTest {
         }
     }
 
-    //TODO add test for POST multipart file storage
+    @Test
+    public void filesPostMultipartTest() throws IOException, URISyntaxException {
+        try(final HttpTestClient client = new HttpTestClient(serverPort())) {
+            final String boundary = "RaNdOmDeLiMiTeR";
+            final String boundaryAttr = "boundary=" + boundary;
+            final String params = "--" + boundary + "\r\n"
+                    + "Content-Disposition: file; filename=\"test.txt\"\r\n"
+                    + "\r\n"
+                    + "test_value\r\n"
+                    + "--" + boundary + "--\r\n";
+            final ServerAnswer result = client.sendRequest(POST, "/", null, params, MULTIPART_FORM_DATA, boundaryAttr);
+            assertEquals(HTTP_200, result.getCode());
+            assertEquals("test_value", readFileAsString("/www/test.txt"));
+            Files.delete(getTestResourcesDir().resolve("www/test.txt"));
+        }
+    }
+
+    @Test
+    public void base64PostMultipartTest() throws IOException, URISyntaxException {
+        try(final HttpTestClient client = new HttpTestClient(serverPort())) {
+            final String boundary = "RaNdOmDeLiMiTeR";
+            final String boundaryAttr = "boundary=" + boundary;
+            final String params = "--" + boundary + "\r\n"
+                    + "Content-Disposition: file; filename=\"test.txt\"\r\n"
+                    + "Content-Transfer-Encoding: Base64\r\n"
+                    + "\r\n"
+                    + new Base64().encodeAsString("test_value".getBytes()) + "\r\n"
+                    + "--" + boundary + "--\r\n";
+            final ServerAnswer result = client.sendRequest(POST, "/", null, params, MULTIPART_FORM_DATA, boundaryAttr);
+            assertEquals(HTTP_200, result.getCode());
+            assertEquals("test_value", readFileAsString("/www/test.txt"));
+            Files.delete(getTestResourcesDir().resolve("www/test.txt"));
+        }
+    }
+
+    @Test
+    public void quotedPrintablePostMultipartTest() throws IOException, URISyntaxException, EncoderException {
+        try(final HttpTestClient client = new HttpTestClient(serverPort())) {
+            final String boundary = "RaNdOmDeLiMiTeR";
+            final String boundaryAttr = "boundary=" + boundary;
+            final String params = "--" + boundary + "\r\n"
+                    + "Content-Disposition: file; filename=\"test.txt\"\r\n"
+                    + "Content-Transfer-Encoding: quoted-printable\r\n"
+                    + "\r\n"
+                    + new QuotedPrintableCodec().encode("test_value") + "\r\n"
+                    + "--" + boundary + "--\r\n";
+            final ServerAnswer result = client.sendRequest(POST, "/", null, params, MULTIPART_FORM_DATA, boundaryAttr);
+            assertEquals(HTTP_200, result.getCode());
+            assertEquals("test_value", readFileAsString("/www/test.txt"));
+            Files.delete(getTestResourcesDir().resolve("www/test.txt"));
+        }
+    }
 
     @Test
     public void parametersPostMultipartBrokenTest() throws IOException, URISyntaxException {

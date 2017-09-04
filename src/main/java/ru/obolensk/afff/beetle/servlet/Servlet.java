@@ -36,6 +36,7 @@ public class Servlet {
 
     private final Invocable invocable;
 
+    @SuppressWarnings("unchecked")
     public Servlet(@Nonnull final String name, @Nonnull final ScriptEngine engine) throws ScriptException, NoSuchMethodException {
         this.name = name;
         this.invocable = (Invocable) engine;
