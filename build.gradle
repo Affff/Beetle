@@ -4,7 +4,7 @@ group = 'ru.afff.beetle'
 version = '0.0.1'
 
 ext {
-    jdkVersion = '1.8'
+    jdkVersion = JavaVersion.VERSION_1_8
 }
 
 tasks.withType(JavaCompile) {

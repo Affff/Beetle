@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.security.GeneralSecurityException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -16,11 +17,14 @@ import ru.obolensk.afff.beetle.settings.Config;
 import ru.obolensk.afff.beetle.settings.ServerConfig;
 import ru.obolensk.afff.beetle.util.Version;
 
+import static ru.obolensk.afff.beetle.core.SslSocketFactory.createSslServerSocket;
 import static ru.obolensk.afff.beetle.settings.Options.LOG_LEVEL;
 import static ru.obolensk.afff.beetle.settings.Options.LOG_TO_CONSOLE;
+import static ru.obolensk.afff.beetle.settings.Options.SERVER_PORT;
 import static ru.obolensk.afff.beetle.settings.Options.SERVER_THREAD_COUNT;
 import static ru.obolensk.afff.beetle.settings.Options.SERVLET_REFRESH_FILES_SERVICE_ENABLED;
 import static ru.obolensk.afff.beetle.settings.Options.SERVLET_REFRESH_FILES_SERVICE_INTERVAL;
+import static ru.obolensk.afff.beetle.settings.Options.SSL_ENABLED;
 
 /**
  * Created by Afff on 10.04.2017.
@@ -28,8 +32,6 @@ import static ru.obolensk.afff.beetle.settings.Options.SERVLET_REFRESH_FILES_SER
 public class BeetleServer implements Closeable {
 
     private static final Logger logger = new Logger(BeetleServer.class);
-
-    private static final int DEFAULT_PORT = 80;
 
     @Getter
     private final Config config;
@@ -44,23 +46,20 @@ public class BeetleServer implements Closeable {
     private final Thread mainLoop;
     private final Thread updateServletLoop;
 
-    public BeetleServer() throws IOException {
-        this(DEFAULT_PORT, new ServerConfig());
+    public BeetleServer() throws IOException, GeneralSecurityException {
+        this(new ServerConfig());
     }
 
-    public BeetleServer(final int port) throws IOException {
-        this(port, new ServerConfig());
-    }
-
-    public BeetleServer(final int port, @Nonnull final Config config) throws IOException {
+    public BeetleServer(@Nonnull final Config config) throws IOException, GeneralSecurityException {
         if (config.get(LOG_TO_CONSOLE)) {
             Logger.addConsoleAppender(config.get(LOG_LEVEL));
         }
+        final int port = config.get(SERVER_PORT);
         logger.info("Starting {} on port {}...", Version.nameAndVersion(), port);
         this.config = config;
         this.storage = new Storage(config);
         this.executor = Executors.newFixedThreadPool(config.get(SERVER_THREAD_COUNT));
-        this.serverSocket = new ServerSocket(port);
+        this.serverSocket = config.is(SSL_ENABLED) ? createSslServerSocket(config) : new ServerSocket(port);
         final Runnable mainLoopRunnable = () -> {
             while (!terminated) {
                 try {

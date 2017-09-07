@@ -1,19 +1,30 @@
 package ru.obolensk.afff.beetle.test;
 
-import ru.obolensk.afff.beetle.protocol.MimeType;
-import ru.obolensk.afff.beetle.protocol.HttpCode;
-import ru.obolensk.afff.beetle.protocol.HttpMethod;
-import ru.obolensk.afff.beetle.protocol.HttpVersion;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
 
-import static ru.obolensk.afff.beetle.protocol.HttpHeader.*;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import ru.obolensk.afff.beetle.core.SslSocketFactory;
+import ru.obolensk.afff.beetle.protocol.HttpCode;
+import ru.obolensk.afff.beetle.protocol.HttpMethod;
+import ru.obolensk.afff.beetle.protocol.HttpVersion;
+import ru.obolensk.afff.beetle.protocol.MimeType;
+
+import static ru.obolensk.afff.beetle.protocol.HttpHeader.CONNECTION;
+import static ru.obolensk.afff.beetle.protocol.HttpHeader.CONTENT_LENGTH;
+import static ru.obolensk.afff.beetle.protocol.HttpHeader.CONTENT_TYPE;
 import static ru.obolensk.afff.beetle.protocol.HttpHeaderValue.CONNECTION_KEEP_ALIVE;
 import static ru.obolensk.afff.beetle.protocol.HttpMethod.HEAD;
 import static ru.obolensk.afff.beetle.protocol.HttpVersion.HTTP_1_1;
@@ -29,15 +40,32 @@ public class HttpTestClient implements Closeable {
     private final HttpVersion version;
 
     public HttpTestClient(final int port) throws IOException {
-        this(port, HTTP_1_1);
+        this(createPlainSocket("localhost", port), HTTP_1_1);
     }
 
-    private HttpTestClient(final int port, @Nonnull final HttpVersion version) throws IOException {
-        this.socket = new Socket("localhost", port);
-        this.socket.setTcpNoDelay(true);
+    public HttpTestClient(@Nonnull final Path keystore, @Nonnull final String keystorePass, final int port)
+            throws IOException, GeneralSecurityException {
+        this(createSslSocket(keystore, keystorePass, "localhost", port), HTTP_1_1);
+    }
+
+    private HttpTestClient(final Socket socket, @Nonnull final HttpVersion version) throws IOException {
+        this.socket = socket;
         this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
         this.version = version;
+    }
+
+    private static Socket createPlainSocket(@Nonnull final String localhost, final int port) throws IOException {
+        final Socket socket = new Socket(localhost, port);
+        socket.setTcpNoDelay(true);
+        return socket;
+    }
+
+    private static Socket createSslSocket(@Nonnull final Path keystore, @Nonnull final String keystorePass,
+                                          @Nonnull final String localhost, final int port) throws IOException, GeneralSecurityException {
+        final Socket socket = new Socket(localhost, port);
+        socket.setTcpNoDelay(true);
+        return SslSocketFactory.createSslSocket(keystore, keystorePass, socket);
     }
 
     public ServerAnswer sendRequest(@Nonnull final HttpMethod method,

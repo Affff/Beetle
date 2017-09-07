@@ -15,7 +15,11 @@ public enum Options {
 
     LOG_TO_CONSOLE(true),
     LOG_LEVEL(Level.INFO),
-    ROOT_DIR(Paths.get("c:/beetle")),
+    SERVER_PORT(80),
+    SSL_ENABLED(false),
+    SSL_KEYSTORE(Paths.get("keystore.pfx")),
+    SSL_KEYSTORE_PASS(""),
+    ROOT_DIR(Paths.get("/beetle")),
     WWW_DIR(Paths.get("www")),
     TEMP_DIR(Paths.get("temp")),
     SERVLETS_ENABLED(false),

@@ -55,8 +55,8 @@ public class ClientConnection {
 
     private static final Logger logger = new Logger(ClientConnection.class);
 
-    //TODO support https
     //TODO support HTTP 2.0
+    //TODO support WebSockets
 
     public ClientConnection(@Nonnull final BeetleServer server, @Nonnull final Socket socket) throws IOException {
         final InetAddress ip = socket.getInetAddress();

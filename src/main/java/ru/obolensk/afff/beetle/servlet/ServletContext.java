@@ -8,6 +8,7 @@ import javax.annotation.Nonnull;
 
 import lombok.Getter;
 import ru.obolensk.afff.beetle.request.MultipartData;
+import ru.obolensk.afff.beetle.request.MultipartDataInfo;
 import ru.obolensk.afff.beetle.request.Request;
 
 import static java.util.stream.Collectors.toMap;
@@ -32,7 +33,7 @@ public class ServletContext {
 	@Getter
 	private final Map<String, String> params;
 
-	private final Map<String, MultipartData> parts;
+	private final Map<String, MultipartDataInfo> parts;
 
 	public ServletContext(@Nonnull final Request req) {
 		host = req.getIp().getHostName();
@@ -48,11 +49,11 @@ public class ServletContext {
 		return params.get(paramName);
 	}
 
-	public Collection<MultipartData> getParts() {
+	public Collection<MultipartDataInfo> getParts() {
 		return parts.values();
 	}
 
-	public MultipartData getPart(final String name) {
+	public MultipartDataInfo getPart(final String name) {
 		return parts.get(name);
 	}
 }

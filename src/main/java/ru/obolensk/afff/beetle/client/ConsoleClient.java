@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -22,8 +23,9 @@ public class ConsoleClient {
 
     private static BeetleServer server;
 
-    public static void main(@Nonnull String[] args) throws IOException {
+    public static void main(@Nonnull String[] args) throws IOException, GeneralSecurityException {
         ServerConfig config = new ServerConfig();
+        config.set(Options.SERVER_PORT, 4080);
         if (args.length != 0) {
             config.set(Options.ROOT_DIR, Paths.get(args[0]));
         }
@@ -31,7 +33,7 @@ public class ConsoleClient {
         config.set(Options.SERVLET_REFRESH_FILES_SERVICE_ENABLED, true);
         config.set(Options.SERVLET_REFRESH_FILES_SERVICE_INTERVAL, 1000);
         org.apache.log4j.Logger.getLogger(ServletContainer.class).setLevel(Level.ERROR);
-        server = new BeetleServer(4080, config);
+        server = new BeetleServer(config);
         printMenu();
     }
 

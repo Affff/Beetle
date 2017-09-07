@@ -4,11 +4,8 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
 import java.util.Arrays;
-
-import javax.annotation.Nonnull;
 
 import org.apache.commons.codec.EncoderException;
 import org.apache.commons.codec.binary.Base64;
@@ -26,7 +23,6 @@ import ru.obolensk.afff.beetle.test.TestProxy;
 
 import static java.net.URLEncoder.encode;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.Files.readAllLines;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -49,39 +45,33 @@ import static ru.obolensk.afff.beetle.protocol.MimeType.MULTIPART_FORM_DATA;
 import static ru.obolensk.afff.beetle.protocol.MimeType.TEXT_PLAIN;
 import static ru.obolensk.afff.beetle.settings.Options.REQUEST_MAX_LINE_LENGTH;
 import static ru.obolensk.afff.beetle.settings.Options.ROOT_DIR;
+import static ru.obolensk.afff.beetle.settings.Options.SERVER_PORT;
 import static ru.obolensk.afff.beetle.settings.Options.SERVLETS_ENABLED;
 
 /**
  * Created by Afff on 21.04.2017.
  */
-public class ServerTest {
+public class ServerTest extends AbstractServerTest {
 
     private static final boolean TEST_PROXY_ENABLED = false;
-    private static final int PROXY_PORT = 4079;
-    private static final int SERVER_PORT = 4080;
+    private static final int TEST_PROXY_PORT = 4079;
 
-    private static ServerConfig config;
-    private static BeetleServer server;
     private static TestProxy proxy;
 
     @BeforeClass
-    public static void init() throws IOException, URISyntaxException {
+    public static void init() throws IOException, GeneralSecurityException, URISyntaxException {
         config = new ServerConfig();
+        config.set(SERVER_PORT, serverPort());
         config.set(ROOT_DIR, getTestResourcesDir());
         config.set(SERVLETS_ENABLED, true);
-        server = new BeetleServer(SERVER_PORT, config);
+        server = new BeetleServer(config);
         if (TEST_PROXY_ENABLED) {
-            proxy = new TestProxy(PROXY_PORT, SERVER_PORT);
+            proxy = new TestProxy(TEST_PROXY_PORT, TEST_SERVER_PORT);
         }
     }
 
-    private static Path getTestResourcesDir() throws URISyntaxException {
-        final ClassLoader classLoader = ServerTest.class.getClassLoader();
-        return Paths.get(classLoader.getResource("index.html").toURI()).getParent();
-    }
-
     private static int serverPort() {
-        return TEST_PROXY_ENABLED ? PROXY_PORT : SERVER_PORT;
+        return TEST_PROXY_ENABLED ? TEST_PROXY_PORT : TEST_SERVER_PORT;
     }
 
     @AfterClass
@@ -312,13 +302,5 @@ public class ServerTest {
             assertEquals(HTTP_200, result.getCode());
             assertEquals("test", result.getReceivedContent());
         }
-    }
-
-    private String readFileAsString(@Nonnull final String fileName) throws URISyntaxException, IOException {
-        final StringBuilder builder = new StringBuilder();
-        final Path file = Paths.get(getClass().getResource(fileName).toURI());
-        readAllLines(file).forEach(s -> builder.append(s).append('\r').append('\n'));
-        builder.setLength(builder.length() - 2); // remove last line break
-        return builder.toString();
     }
 }
