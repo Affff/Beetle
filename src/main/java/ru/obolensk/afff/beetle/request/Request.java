@@ -80,7 +80,7 @@ public class Request {
     private final boolean invalid;
 
     @Nullable @Getter @Setter(PROTECTED)
-    private Integer entitySize;
+    private int entitySize;
 
     private Request(@Nonnull final LimitedBufferedReader reader,
                     @Nonnull final OutputStream outputStream,
@@ -116,7 +116,7 @@ public class Request {
     }
 
     @Nullable
-    public String getHeaderValue(@Nonnull final HttpHeader header) {
+    String getHeaderValue(@Nonnull final HttpHeader header) {
         return RequestUtil.getHeaderValue(headers, header);
     }
 
@@ -154,7 +154,7 @@ public class Request {
         }
     }
 
-    public void addParameter(@Nonnull final String name, @Nonnull final String value) {
+    void addParameter(@Nonnull final String name, @Nullable final String value) {
         this.parameters.put(name, value);
     }
 
@@ -163,13 +163,17 @@ public class Request {
     }
 
     public boolean hasEntity() {
-        return entitySize != null;
+        return entitySize != 0;
     }
 
     public void skipEntityQuietly() {
-        if (entitySize != null) {
+        if (hasEntity()) {
             try {
-                reader.skip(entitySize);
+                long actualSkipped = reader.skip(entitySize);
+                if (actualSkipped != entitySize) {
+                    logger.warn("Malformed HTTP request: entity should have "
+                            + entitySize + " but it has only " + actualSkipped + " bytes.");
+                }
             } catch (IOException e) {
                 logger.error(e);
             }

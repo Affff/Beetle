@@ -25,6 +25,7 @@ import static java.net.URLEncoder.encode;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static ru.obolensk.afff.beetle.protocol.HttpCode.HTTP_200;
 import static ru.obolensk.afff.beetle.protocol.HttpCode.HTTP_201;
@@ -122,7 +123,7 @@ public class ServerTest extends AbstractServerTest {
     }
 
     @Test
-    public void plainPostUnsupportedTest() throws IOException, URISyntaxException {
+    public void plainPostUnsupportedTest() throws IOException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
             final ServerAnswer result = client.sendRequest(POST, "/", null, TEXT_PLAIN);
             assertEquals(HTTP_415, result.getCode());
@@ -210,7 +211,7 @@ public class ServerTest extends AbstractServerTest {
     }
 
     @Test
-    public void parametersPostMultipartBrokenTest() throws IOException, URISyntaxException {
+    public void parametersPostMultipartBrokenTest() throws IOException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
             final String boundary = "RaNdOmDeLiMiTeR";
             final String boundaryAttr = "boundary=" + boundary;
@@ -233,11 +234,11 @@ public class ServerTest extends AbstractServerTest {
     }
 
     @Test
-    public void simpleHeadTest() throws IOException, URISyntaxException {
+    public void simpleHeadTest() throws IOException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
             final ServerAnswer result = client.sendRequest(HEAD, "/", null, null);
             assertEquals(HTTP_200, result.getCode());
-            assertEquals(null, result.getReceivedContent());
+            assertNull(result.getReceivedContent());
         }
     }
 
@@ -246,18 +247,18 @@ public class ServerTest extends AbstractServerTest {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
             final ServerAnswer result = client.sendRequest(PUT, "/to_delete/delete.html", readFileAsString("/www/index.html"), TEXT_PLAIN);
             assertEquals(HTTP_201, result.getCode());
-            assertEquals(null, result.getReceivedContent());
+            assertNull(result.getReceivedContent());
             final ServerAnswer result2 = client.sendRequest(PUT, "/to_delete/delete.html", readFileAsString("/www/index.html"), TEXT_PLAIN);
             assertEquals(HTTP_200, result2.getCode());
-            assertEquals(null, result2.getReceivedContent());
+            assertNull(result2.getReceivedContent());
             final ServerAnswer result3 = client.sendRequest(DELETE, "/to_delete/delete.html", null, null);
             assertEquals(HTTP_200, result3.getCode());
-            assertEquals(null, result3.getReceivedContent());
+            assertNull(result3.getReceivedContent());
         }
     }
 
     @Test
-    public void tooLongRequestTest() throws IOException, URISyntaxException, InterruptedException {
+    public void tooLongRequestTest() throws IOException {
         config.set(REQUEST_MAX_LINE_LENGTH, 1);
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
             final ServerAnswer result = client.sendRequest(GET, "/test", null, null);
@@ -269,7 +270,7 @@ public class ServerTest extends AbstractServerTest {
     }
 
     @Test
-    public void outOfWwwRootAttackTest() throws IOException, URISyntaxException {
+    public void outOfWwwRootAttackTest() throws IOException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
             final ServerAnswer result = client.sendRequest(GET, "/../test/../", null, null);
             assertEquals(HTTP_404, result.getCode());
@@ -278,7 +279,7 @@ public class ServerTest extends AbstractServerTest {
     }
 
     @Test
-    public void multiplyCloseHeader() throws IOException, URISyntaxException, InterruptedException {
+    public void multiplyCloseHeader() throws IOException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
             final ServerAnswer result = client.sendRequest(GET, "/",
                     Arrays.asList(
@@ -290,13 +291,13 @@ public class ServerTest extends AbstractServerTest {
             try {
                 client.sendRequest(GET, "/", null, null);
                 fail();
-            } catch (SocketException e) {
+            } catch (SocketException ignored) {
             }
         }
     }
 
     @Test
-    public void servletTest() throws IOException, URISyntaxException, InterruptedException {
+    public void servletTest() throws IOException {
         try(final HttpTestClient client = new HttpTestClient(serverPort())) {
             final ServerAnswer result = client.sendRequest(POST, "/serv/echo", "data=test", APPLICATION_X_WWW_FORM_URLENCODED);
             assertEquals(HTTP_200, result.getCode());

@@ -52,7 +52,7 @@ public class Storage {
     @Getter
     private final ServletContainer servletContainer;
 
-    public Storage(@Nonnull final Config config) throws IOException {
+    Storage(@Nonnull final Config config) throws IOException {
         this.config = config;
         this.servletContainer = new ServletContainer(this);
         checkAndCreateDirIfNeeded(getWwwDir());
@@ -67,7 +67,7 @@ public class Storage {
     }
 
     @Nonnull
-    public Path getRootDir() {
+    private Path getRootDir() {
         return config.get(ROOT_DIR);
     }
 
@@ -82,7 +82,7 @@ public class Storage {
     }
 
 	@Nonnull
-    public Path getTempDir() {
+    private Path getTempDir() {
 		return getPathFor(TEMP_DIR);
 	}
 
@@ -96,7 +96,7 @@ public class Storage {
     }
 
     @Nullable
-    public Path getFilePath(@Nonnull String path) {
+    Path getFilePath(@Nonnull String path) {
         path = path.substring(1); // delete starting '/'
         final Path rootDir = getWwwDir();
         final Path targetPath = path.isEmpty() ? rootDir.resolve(getWelcomeFileName())
@@ -108,25 +108,25 @@ public class Storage {
     }
 
     @Nullable
-    public boolean execute(@Nonnull final Request req, @Nullable Path path, @Nonnull ResponseWriter writer) {
+    boolean continueIfServletNotExecuted(@Nonnull final Request req, @Nullable Path path, @Nonnull ResponseWriter writer) {
         if (path == null) { // wrong server path
-            return false;
+            return true;
         }
         final ServletResponse response = servletContainer.process(req, path);
         if (response != null) {
             writer.sendServletResponse(response);
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
-    public HttpCode putFile(@Nonnull final Request req, Path file) {
+    HttpCode putFile(@Nonnull final Request req, Path file) {
         if (file == null) {
             return HTTP_400; // wrong server path
         }
         final boolean exists = exists(file);
         HttpCode responseCode = exists ? HTTP_200 : HTTP_201;
-        final int size = req.getEntitySize() != null ? req.getEntitySize() : 0;
+        final int size = req.getEntitySize();
         if (size > 0) {
             Path tempFile = null;
             try {
@@ -169,7 +169,7 @@ public class Storage {
 		return true;
     }
 
-	public HttpCode putMultipartFile(MultipartData data) {
+	HttpCode putMultipartFile(MultipartData data) {
 		final boolean exists = exists(data.getTargetPath());
 		HttpCode responseCode = exists ? HTTP_200 : HTTP_201;
 		try {
@@ -182,7 +182,7 @@ public class Storage {
 		return responseCode;
 	}
 
-    public void updateContext() throws IOException {
+    void updateContext() throws IOException {
         servletContainer.update();
     }
 }

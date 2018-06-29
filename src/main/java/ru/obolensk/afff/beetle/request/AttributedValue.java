@@ -37,12 +37,10 @@ public class AttributedValue {
     }
 
     private static String trimAndRemoveQuotes(@Nonnull String str) {
-        str = str.trim();
-        if (str != null) {
-            char startChar = str.charAt(0);
-            if (startChar == '"' || startChar == '\'') {
-                str = str.substring(1, str.length() - 1);
-            }
+        str =  str.trim();
+        char startChar = str.charAt(0);
+        if (startChar == '"' || startChar == '\'') {
+            str = str.substring(1, str.length() - 1);
         }
         return str;
     }

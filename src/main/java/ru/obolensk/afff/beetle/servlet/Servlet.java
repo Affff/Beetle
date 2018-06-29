@@ -18,7 +18,7 @@ import ru.obolensk.afff.beetle.protocol.HttpCode;
 /**
  * Created by Afff on 25.07.2017.
  */
-public class Servlet {
+class Servlet {
 
     private final static String CONTENT_ROOT_METHOD_NAME = "getContentRoots";
     private final static String RUN_SERVLET_METHOD_NAME = "run";
@@ -37,7 +37,7 @@ public class Servlet {
     private final Invocable invocable;
 
     @SuppressWarnings("unchecked")
-    public Servlet(@Nonnull final String name, @Nonnull final ScriptEngine engine) throws ScriptException, NoSuchMethodException {
+    Servlet(@Nonnull final String name, @Nonnull final ScriptEngine engine) throws ScriptException, NoSuchMethodException {
         this.name = name;
         this.invocable = (Invocable) engine;
         final Object result = invocable.invokeFunction(CONTENT_ROOT_METHOD_NAME);
@@ -49,7 +49,7 @@ public class Servlet {
     }
 
     @SuppressWarnings("unchecked")
-    public ServletResponse run(ServletContext context) {
+    ServletResponse run(ServletContext context) {
         try {
             final ScriptObjectMirror result = (ScriptObjectMirror) invocable.invokeFunction(RUN_SERVLET_METHOD_NAME, context);
             HttpCode resultCode = HttpCode.getByStatusCode((Number) result.get(SERVLET_RESPONSE_CODE_FIELD));

@@ -15,19 +15,19 @@ import static java.nio.file.Files.readAllLines;
 /**
  * Created by Afff on 06.09.2017.
  */
-public abstract class AbstractServerTest {
+abstract class AbstractServerTest {
 
-	protected static final int TEST_SERVER_PORT = 4080;
+	static final int TEST_SERVER_PORT = 4080;
 
-	protected static ServerConfig config;
-	protected static BeetleServer server;
+	static ServerConfig config;
+	static BeetleServer server;
 
-	protected static Path getTestResourcesDir() throws URISyntaxException {
+	static Path getTestResourcesDir() throws URISyntaxException {
 		final ClassLoader classLoader = ServerTest.class.getClassLoader();
 		return Paths.get(classLoader.getResource("www/index.html").toURI()).getParent().getParent();
 	}
 
-	protected String readFileAsString(@Nonnull final String fileName) throws URISyntaxException, IOException {
+	String readFileAsString(@Nonnull final String fileName) throws URISyntaxException, IOException {
 		final StringBuilder builder = new StringBuilder();
 		final Path file = Paths.get(getClass().getResource(fileName).toURI());
 		readAllLines(file).forEach(s -> builder.append(s).append('\r').append('\n'));

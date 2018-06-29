@@ -3,6 +3,7 @@ package ru.obolensk.afff.beetle.request;
 import java.io.IOException;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
@@ -15,13 +16,13 @@ import static ru.obolensk.afff.beetle.protocol.ContentTransferEncoding.QUOTED_PR
 /**
  * Created by Afff on 04.09.2017.
  */
-public class ContentDecoder {
+class ContentDecoder {
 
 	private static final Base64 base64Codec = new Base64();
 	private static final QuotedPrintableCodec quotedPrintableCodec = new QuotedPrintableCodec();
 
 	@Nonnull
-	public static String decode(@Nonnull final String content, @Nonnull final String transferEncoding) throws IOException {
+	static String decode(@Nonnull final String content, @Nullable final String transferEncoding) throws IOException {
 		final ContentTransferEncoding encoding = ContentTransferEncoding.getByName(transferEncoding);
 		if (encoding == BASE64) {
 			return new String(base64Codec.decode(content));

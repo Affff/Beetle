@@ -51,14 +51,14 @@ import static ru.obolensk.afff.beetle.util.StreamUtil.readAsString;
 /**
  * Created by Afff on 10.04.2017.
  */
-public class ClientConnection {
+class ClientConnection {
 
     private static final Logger logger = new Logger(ClientConnection.class);
 
     //TODO support HTTP 2.0
     //TODO support WebSockets
 
-    public ClientConnection(@Nonnull final BeetleServer server, @Nonnull final Socket socket) throws IOException {
+    ClientConnection(@Nonnull final BeetleServer server, @Nonnull final Socket socket) throws IOException {
         final InetAddress ip = socket.getInetAddress();
         logger.debug("Open client connection from {}:{}", ip, socket.getPort());
         final int maxLineLimit = server.getConfig().get(REQUEST_MAX_LINE_LENGTH);
@@ -73,7 +73,7 @@ public class ClientConnection {
                     continue;
                 }
                 final RequestBuilder builder = new RequestBuilder(ip, reader, outputStream, nextReq);
-                while (builder.addHeader(reader.readLine())) ;
+                while (builder.addHeader(reader.readLine()));
                 final Request req = builder.build();
                 proceedRequest(req, server.getStorage());
                 if (closeRequested(req)) {
@@ -107,13 +107,12 @@ public class ClientConnection {
                     }
                     case MULTIPART_FORM_DATA : {
                         final String boundary = req.getHeaderAttribute(CONTENT_TYPE, BOUNDARY);
-                        final Integer entitySize = req.getEntitySize();
-                        if (boundary == null || entitySize == null) {
+                        if (boundary == null || !req.hasEntity()) {
                             req.skipEntityQuietly();
                             writer.sendEmptyAnswer(HTTP_400);
                             return;
                         }
-                        int counter = entitySize;
+                        int counter = req.getEntitySize();
                         final MultipartDataProcessor processor = new MultipartDataProcessor(req, boundary, storage);
                         while (counter > 0) {
                             if (!processor.step(req.getReader().readLine())) {
@@ -135,34 +134,34 @@ public class ClientConnection {
                 req.skipEntityQuietly();
             }
             final Path file = storage.getFilePath(req.getLocalPath());
-            if (!storage.execute(req, file, writer)) {
+            if (storage.continueIfServletNotExecuted(req, file, writer)) {
                 if (!req.getMultipartData().isEmpty()) {
                     req.getMultipartData().forEach(storage::putMultipartFile);
                 }
-                if (!exists(file)) {
-                    writer.send404();
-                } else {
+                if (exists(file)) {
                     writer.sendFile(file);
+                } else {
+                    writer.send404();
                 }
             }
         } else if (req.getMethod() == PUT) {
             final Path file = storage.getFilePath(req.getLocalPath());
-            if (!storage.execute(req, file, writer)) {
+            if (storage.continueIfServletNotExecuted(req, file, writer)) {
                 writer.sendEmptyAnswer(storage.putFile(req, file));
             }
         } else if (req.getMethod() == DELETE) {
             req.skipEntityQuietly();
             final Path file = storage.getFilePath(req.getLocalPath());
-            if (!storage.execute(req, file, writer)) {
-                if (!exists(file)) {
-                    writer.send404();
-                } else {
+            if (storage.continueIfServletNotExecuted(req, file, writer)) {
+                if (exists(file)) {
                     try {
                         Files.delete(file);
                         writer.sendEmptyAnswer(HTTP_200);
                     } catch (IOException e) {
                         writer.sendEmptyAnswer(HTTP_500);
                     }
+                } else {
+                    writer.send404();
                 }
             }
         } else if (req.getMethod() == OPTIONS) {

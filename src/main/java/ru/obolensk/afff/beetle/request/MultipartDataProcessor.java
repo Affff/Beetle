@@ -90,7 +90,9 @@ public class MultipartDataProcessor {
                     final String filename = RequestUtil.getHeaderAttribute(headers, CONTENT_DISPOSITION, FILENAME);
                     final String transferEncoding = RequestUtil.getHeaderValue(headers, CONTENT_TRANSFER_ENCODING);
                     final String content = decode(buffer.toString(), transferEncoding);
-                    if (!storage.readMultipartFileToRequest(request, filename, content)) {
+                    if (filename == null) {
+                        logger.warn("File with empty name can't be stored for request with URI {}", request.getUri());
+                    } else if (!storage.readMultipartFileToRequest(request, filename, content)) {
                         logger.warn("File {} can't be stored for request with URI {}", filename, request.getUri());
                     }
                 }

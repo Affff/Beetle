@@ -63,15 +63,15 @@ public enum HttpCode {
         this.descr = name;
     }
 
-    @Nullable
-    public static HttpCode getByStatusCode(@Nonnull final Number status) {
+    @Nonnull
+    public static HttpCode getByStatusCode(@Nullable final Number status) {
         if (status == null) {
             return HTTP_500;
         }
-        final HttpCode code = HttpCode.valueOf("HTTP_" + status.intValue());
-        if (code == null) {
+        try {
+            return HttpCode.valueOf("HTTP_" + status.intValue());
+        } catch (IllegalArgumentException e) {
             return HTTP_500;
         }
-        return code;
     }
 }

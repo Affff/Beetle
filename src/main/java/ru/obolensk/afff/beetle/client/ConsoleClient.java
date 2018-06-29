@@ -19,7 +19,7 @@ import ru.obolensk.afff.beetle.util.Version;
 /**
  * Created by Afff on 10.04.2017.
  */
-public class ConsoleClient {
+class ConsoleClient {
 
     private static BeetleServer server;
 

@@ -53,7 +53,7 @@ public class SslServerTest extends AbstractServerTest {
     }
 
     @AfterClass
-    public static void destroy() throws IOException {
+    public static void destroy() {
         server.close();
     }
 

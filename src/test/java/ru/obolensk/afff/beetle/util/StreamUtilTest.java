@@ -1,10 +1,16 @@
 package ru.obolensk.afff.beetle.util;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Writer;
+import java.util.Arrays;
+
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.io.*;
-import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -41,12 +47,12 @@ public class StreamUtilTest {
         try {
             StreamUtil.copy(in4, out4, 0);
             Assert.fail();
-        } catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException ignored){
         }
         try {
             StreamUtil.copy(in4, out4, -1);
             Assert.fail();
-        } catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException ignored){
         }
     }
 }

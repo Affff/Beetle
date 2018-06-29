@@ -35,21 +35,21 @@ import static ru.obolensk.afff.beetle.protocol.HttpHeader.SERVER;
 /**
  * Created by Afff on 11.04.2017.
  */
-public class ResponseWriter {
+class ResponseWriter {
 
     private static final Logger logger = new Logger(ResponseWriter.class);
 
     private final Request request;
 
-    public ResponseWriter(@Nonnull final Request request) {
+    ResponseWriter(@Nonnull final Request request) {
         this.request = request;
     }
 
-	public void sendAnswer(@Nonnull final HttpCode code, @Nonnull final MimeType mimeType, @Nonnull final String content) {
+	void sendAnswer(@Nonnull final HttpCode code, @Nonnull final MimeType mimeType, @Nonnull final String content) {
 		sendAnswer(code, mimeType, content, null);
 	}
 
-    public void sendAnswer(@Nonnull final HttpCode code, @Nonnull final MimeType mimeType,
+    private void sendAnswer(@Nonnull final HttpCode code, @Nonnull final MimeType mimeType,
                            @Nullable final String content, @Nullable String errorDescr) {
         final Writer writer = writeHeader(code, errorDescr);
         final int length = content != null ? content.getBytes(StandardCharsets.UTF_8).length : 0;
@@ -64,7 +64,7 @@ public class ResponseWriter {
         writer.flush();
     }
 
-    public void sendServletResponse(ServletResponse response) {
+    void sendServletResponse(ServletResponse response) {
         sendAnswer(response.getCode(), MimeType.TEXT_HTML, response.getData(), response.getErrorMessage());
     }
 
@@ -76,7 +76,7 @@ public class ResponseWriter {
         return "; charset=" + mimeType.getCharset().name();
     }
 
-    public void sendOptions(List<HttpMethod> options) {
+    void sendOptions(List<HttpMethod> options) {
         final Writer writer = writeHeader(HttpCode.HTTP_200, null);
         final StringJoiner joiner = new StringJoiner("");
         options.forEach(option -> joiner.add(option.name()));
@@ -84,7 +84,7 @@ public class ResponseWriter {
         writer.flush();
     }
 
-    public void sendConnected() {
+    void sendConnected() {
         final Writer writer = request.getWriter();
         writer.println(request.getVersion().getName() + " " + HttpCode.HTTP_200 + " Connection established");
         writer.println(DATE.getName() + ": " + DateUtil.getHttpTime());
@@ -92,17 +92,17 @@ public class ResponseWriter {
         writer.flush();
     }
 
-    public void sendEmptyAnswer(@Nonnull final HttpCode code) {
+    void sendEmptyAnswer(@Nonnull final HttpCode code) {
         sendAnswer(code, TEXT_HTML, "");
     }
 
-    public static void sendUnparseableRequestAnswer(InetAddress ip, @Nonnull final OutputStream out, @Nonnull final HttpCode code) {
+    static void sendUnparseableRequestAnswer(InetAddress ip, @Nonnull final OutputStream out, @Nonnull final HttpCode code) {
         final LimitedBufferedReader emptyReader = new LimitedBufferedReader(new StringReader(""), Integer.MAX_VALUE);
         final ResponseWriter writer = new ResponseWriter(new RequestBuilder(ip, emptyReader, out,"UNKNOWN / HTTP/1.1").build());
         writer.sendEmptyAnswer(code);
     }
 
-    public void sendFile(@Nonnull final Path path) {
+    void sendFile(@Nonnull final Path path) {
         HttpCode code = HttpCode.HTTP_200;
         String answer;
         try {
@@ -115,7 +115,7 @@ public class ResponseWriter {
         sendAnswer(code, TEXT_HTML, answer);
     }
 
-    public void send404() {
+    void send404() {
         final HttpCode code = HttpCode.HTTP_404;
         String answer = "<html><header><meta charset=\"UTF-8\"><title>" + Version.nameAndVersion() + ": " + + code.getCode() + " " + code.getDescr() + "</title></header>"
             + "<body>Requested URI '" + request.getUri() + "' wasn't found.</body></html>";

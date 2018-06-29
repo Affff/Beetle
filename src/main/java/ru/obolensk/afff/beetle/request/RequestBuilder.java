@@ -6,7 +6,6 @@ import java.net.InetAddress;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.primitives.Ints;
 import ru.obolensk.afff.beetle.log.Logger;
 import ru.obolensk.afff.beetle.protocol.HttpHeader;
 import ru.obolensk.afff.beetle.stream.LimitedBufferedReader;
@@ -45,13 +44,15 @@ public class RequestBuilder {
         return request;
     }
 
-    @Nullable
-    private Integer entitySize() {
+    private int entitySize() {
         final String bodySizeStr = request.getHeaderValue(HttpHeader.CONTENT_LENGTH);
         if (bodySizeStr != null) {
-            return Ints.tryParse(bodySizeStr);
+            try {
+                return Integer.valueOf(bodySizeStr);
+            } catch (NumberFormatException ignored) {
+            }
         }
-        return null;
+        return 0;
     }
 
 }

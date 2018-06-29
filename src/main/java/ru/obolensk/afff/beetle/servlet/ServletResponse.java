@@ -1,5 +1,8 @@
 package ru.obolensk.afff.beetle.servlet;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import lombok.Getter;
 import ru.obolensk.afff.beetle.protocol.HttpCode;
 
@@ -19,7 +22,7 @@ public class ServletResponse {
     @Getter
     private final String data;
 
-    public ServletResponse(HttpCode code, String data) {
+    ServletResponse(@Nonnull HttpCode code, @Nullable String data) {
         this.code = code;
 		if (code == HTTP_200) {
 			this.errorMessage = null;
